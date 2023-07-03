@@ -120,6 +120,9 @@ class Commodity(models.Model):
     live_deal_user_count = models.IntegerField(verbose_name='直播间成交人数', blank=True)
     live_deal_conversion_rate = models.DecimalField(max_digits=10, decimal_places=6, verbose_name='直播间成交转化率',
                                                     blank=True)
+    quality_return_rate = models.FloatField(verbose_name='品质退货率', null=True)  # 品质退货率
+    negative_review_rate = models.FloatField(verbose_name='差评率', null=True)  # 差评率
+    positive_review_count = models.IntegerField(verbose_name='好评数', null=True)  # 好评数
 
     class Meta:
         verbose_name = '30天全量商品表'

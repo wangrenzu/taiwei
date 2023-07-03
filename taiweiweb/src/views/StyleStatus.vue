@@ -35,7 +35,10 @@
       <Download/>
     </el-icon>
   </el-button>
-  <el-table :data="home.style_status_list" v-loading="home.loading" style="width: 100%" height="800" border fit>
+  <el-checkbox style="margin-left: 10px" v-model="dis">
+    去重
+  </el-checkbox>
+  <el-table :data="home.style_status_list" v-loading="loading" style="width: 100%" height="800" border fit>
     <el-table-column type="index" label="序号" width="70" show-overflow-tooltip/>
     <el-table-column prop="date_time" label="上传日期" width="110" show-overflow-tooltip/>
     <el-table-column prop="time" label="下单日期" width="110" show-overflow-tooltip/>
@@ -130,6 +133,10 @@ const tags = ref('')
 // 上传日期
 const date_time = ref('')
 
+const dis = ref(false)
+const loading = ref(true)
+
+
 // 标签筛选下拉框
 const tags_options = [
   {
@@ -207,20 +214,20 @@ const Fields = [
 const exportExcel = (exportFields) => {
   let tagValues = Object.values(tags.value);
   tagValues = tagValues.join(',')
-  home.getStyleStatus(code.value, tagValues, date_time.value, 1).then(response => {
+  home.getStyleStatus(code.value, tagValues, date_time.value, dis.value, 1).then(response => {
     const sheet = XLSX.utils.json_to_sheet(response.data.map(item => {
-    const row = {};
-    exportFields.forEach(field => {
-      row[field.label] = item[field.key];
-    });
-    return row;
-  }));
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, sheet, 'Sheet1');
-  const filename = 'table.xlsx';
-  const wbout = XLSX.write(workbook, {bookType: 'xlsx', type: 'array'});
-  const blob = new Blob([wbout], {type: 'application/octet-stream'});
-  FileSaver.saveAs(blob, filename);
+      const row = {};
+      exportFields.forEach(field => {
+        row[field.label] = item[field.key];
+      });
+      return row;
+    }));
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, sheet, 'Sheet1');
+    const filename = 'table.xlsx';
+    const wbout = XLSX.write(workbook, {bookType: 'xlsx', type: 'array'});
+    const blob = new Blob([wbout], {type: 'application/octet-stream'});
+    FileSaver.saveAs(blob, filename);
   }).catch(err => {
     console.log(err)
   })
@@ -230,13 +237,13 @@ const exportExcel = (exportFields) => {
 
 // 根据筛选条件获取内容
 const getStyleStatus = () => {
+  loading.value = true
   let tagValues = Object.values(tags.value);
   tagValues = tagValues.join(',')
-  home.getStyleStatus(code.value, tagValues, date_time.value, 0).then(response => {
-    console.log(response)
+  home.getStyleStatus(code.value, tagValues, date_time.value, dis.value, 0).then(response => {
     home.style_status_list = response.data.results
     home.style_count = response.data.count
-    home.loading = false
+    loading.value = false
   }).catch(err => {
     console.log(err)
   })
@@ -285,7 +292,7 @@ const handleClose = (removedTag, score) => {
 watch(
     [() => home.style_page, () => home.style_size],
     () => {
-      home.loading = true
+      loading.value = true
       getStyleStatus()
     }
 )

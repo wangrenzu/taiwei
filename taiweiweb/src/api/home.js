@@ -270,7 +270,7 @@ const home = reactive({
      * @param {boolean} is_all - 是否获取全部信息
      * @returns {Promise} 返回一个Promise对象
      */
-    getStyleStatus(code, tags, date_time, is_all) {
+    getStyleStatus(code, tags, date_time, dis, is_all) {
         return http.get("/home/StyleStatusView", {
             params: {
                 page: this.style_page,
@@ -278,6 +278,7 @@ const home = reactive({
                 code: code,
                 tags: tags,
                 date_time: date_time,
+                dis: dis,
                 is_all: is_all,
             }
         })

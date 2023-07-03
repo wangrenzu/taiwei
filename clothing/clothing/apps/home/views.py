@@ -1,6 +1,6 @@
 import io
-from django.db.models import Q
-import re
+from django.db.models import Q, OuterRef, Subquery
+from django.db.models import Max
 import pandas as pd
 from django.db import DatabaseError, connection
 from django.http import JsonResponse, HttpResponse
@@ -1988,7 +1988,10 @@ class UpdateCommodity(APIView):
                 live_deal_order_count=row["直播间成交订单数"],
                 live_deal_item_count=row["直播间成交件数"],
                 live_deal_user_count=row["直播间成交人数"],
-                live_deal_conversion_rate=row["直播间成交转化率"]
+                live_deal_conversion_rate=row["直播间成交转化率"],
+                quality_return_rate=row["品质退货率（滞后）"],
+                negative_review_rate=row["差评率"],
+                positive_review_count=row["好评数"],
             )
             commodity_list.append(commodity)
 
@@ -3176,6 +3179,8 @@ class StyleStatusView(APIView):
         tags = request.query_params.get('tags')
         # 是否导出
         is_all = request.query_params.get('is_all')
+        # 是否去重
+        dis = request.query_params.get('dis')
         # 上传日期
         date_time = request.query_params.getlist('date_time[]')
         queryset = StyleStatus.objects.all().order_by('-time')
@@ -3196,8 +3201,11 @@ class StyleStatusView(APIView):
             queryset = queryset.filter(tags_query)
         if conditions:
             queryset = queryset.filter(**conditions).order_by('-time')
-
-        if is_all == '1':
+        if dis == 'true':
+            subquery = queryset.filter(date_time=OuterRef('date_time'), code=OuterRef('code')).order_by(
+                '-time')
+            queryset = queryset.filter(time=Subquery(subquery.values('time')[:1]))
+        if is_all == "1":
             serializer = StyleStatusSerializer(queryset, many=True)
             return Response(serializer.data)
         # 这里添加了分页
@@ -3207,7 +3215,6 @@ class StyleStatusView(APIView):
         if page is not None:
             serializer = StyleStatusSerializer(page, many=True)
             return paginator.get_paginated_response(serializer.data)
-
         serializer = StyleStatusSerializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -3276,7 +3283,16 @@ def insert_style_status(status_time, date_time, tag, code):
             CONCAT_WS(',',
                 IF(d.is_taiwei_materials IS NOT NULL, '采购面料', NULL),   #采购面料
                 IF(e.is_taiwei_fabric IS NOT NULL, '采购辅料', NULL),			#采购辅料
-                IF((a.che_jian <= s.che_jian) AND a.che_jian<10, '没到车间', NULL),						#没到车间
+                IF(
+                    (DATE_SUB(CURDATE(), INTERVAL 20 DAY) <= %s)
+                    AND
+                    ((status = '新款' OR 
+                    (a.cai_chuang+a.cai_chuang+a.hou_dao+a.tai_wei+a.yi_fa+a.mo_ya) = 0)
+                    OR
+                    (status = '翻单' AND (t.inventory2>0 OR a.che_jian<=s.che_jian))),
+                    '没到车间',
+                    NULL
+                ),						#没到车间
                 IF((a.che_jian-s.che_jian)>=10, '刚到车间', NULL),						#刚到车间
                 IF((a.che_jian = s.che_jian) AND a.che_jian>11, '车间加工中', NULL),			#车间加工中
                 IF((a.hou_dao = s.hou_dao) AND a.hou_dao>11, '在后道', NULL),			#在后道
@@ -3384,11 +3400,12 @@ def insert_style_status(status_time, date_time, tag, code):
         (
             SELECT
             code,
-            SUM(inventory) as inventory
+            SUM(CASE WHEN house="意法仓" OR house="vege档口" OR house="MOIA档口" THEN inventory ELSE 0 END) as inventory,
+            SUM(CASE WHEN house="积聚仓" OR house="裁床" THEN inventory ELSE 0  END ) as inventory2,
+            %s as status
             FROM
             taiwei_stock
-            WHERE house="意法仓" OR house="vege档口" OR house="MOIA档口"
-            AND code=%s
+            WHERE code=%s
             GROUP BY code 
         ) as t on t.code = a.code
     """
@@ -3398,5 +3415,5 @@ def insert_style_status(status_time, date_time, tag, code):
 
     with connection.cursor() as cursor:
         cursor.execute(query,
-                       [status_time, date_time, difference_in_days, tag, code, code, code, code, code, code, code, code,
-                        code, code, code, code, code])
+                       [status_time, date_time, difference_in_days, status_time, tag, code, code, code, code,
+                        code, code, code, code, code, code, code, code, tag, code])

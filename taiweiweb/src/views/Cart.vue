@@ -4,6 +4,22 @@
   <el-input v-model="cart.cart_code" style="width: 200px"
             placeholder="请输入款号" clearable></el-input>
   <el-button type="primary" @click="addCart">加入购物车</el-button>
+  <el-button type="primary" @click="getCartLink">导出链接
+    <el-icon class="el-icon--right">
+      <Download/>
+    </el-icon>
+  </el-button>
+
+  <el-button type="primary" @click="cart.update_code=true">上传导出
+    <el-icon class="el-icon--right">
+      <Download/>
+    </el-icon>
+  </el-button>
+
+  <el-dialog :width="600" v-model="cart.update_code">
+    <UpdateCodeLink></UpdateCodeLink>
+  </el-dialog>
+
   <br>
   <el-button type="primary" @click="exportExcel(cartData,cart.cart_list)">导出
     <el-icon class="el-icon--right">
@@ -87,10 +103,10 @@ import * as XLSX from "xlsx";
 import FileSaver from 'file-saver';
 import {Download} from '@element-plus/icons-vue'
 import {useRoute} from 'vue-router';
+import UpdateCodeLink from "../components/UpdateCodeLink.vue";
 
 
 const route = useRoute();
-
 
 // 导出的字段内容
 const cartData = [
@@ -118,7 +134,10 @@ const cartData = [
   {key: 'exposure', label: '本场曝光量'},
   {key: 'clickExposure', label: '本场曝光点击率'},
   {key: 'clickDeal', label: '本场点击成交率'},
-
+]
+const cart_link = [
+  {key: 'code', label: '款号'},
+  {key: 'link', label: '链接'},
 ]
 
 //导出到excel
@@ -190,6 +209,21 @@ const addCart = () => {
   }).catch(err => {
     alert("添加失败")
     ElMessage(err)
+  })
+}
+
+// const Filed = {
+//   "款号":,
+// }
+const getCartLink = () => {
+  cart.codes = []
+  cart.cart_list.forEach(item => {
+    cart.codes.push(item.commodity_code)
+  })
+  cart.getCartLink().then(response => {
+    exportExcel(cart_link, response.data)
+  }).catch(err => {
+    console.log(err)
   })
 }
 

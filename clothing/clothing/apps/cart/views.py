@@ -1,4 +1,7 @@
-from django.http import HttpResponse
+import json
+
+import pandas as pd
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -585,3 +588,67 @@ class CartInfo(APIView):
                                [cart_name, source, code, code, code, code, code, code, code, code, code, code, code,
                                 code])
         return HttpResponse("ok")
+
+
+def get_cart_link(request):
+    # 获取购物车商品链接
+    query = '''
+        SELECT 
+        LEFT(o.merchant_code, LENGTH(o.merchant_code)-1) as code,
+        CONCAT('https://haohuo.jinritemai.com/ecommerce/trade/detail/index.html?id=',o.product_id)
+        FROM taiwei_orders as o
+        JOIN taiwei_commodity as c
+        ON o.product_id = c.commodity_code
+        WHERE LEFT(o.merchant_code, LENGTH(o.merchant_code)-1) = %s
+        ORDER BY negative_review_rate,positive_review_count DESC,quality_return_rate
+        LIMIT 1 
+    '''
+    codes = request.GET.getlist('codes')[0].split(',')  # 获取GET请求的查询参数
+    try:
+        with connection.cursor() as cursor:
+            links = []
+            for code in codes:
+                cursor.execute(query, [code])
+                result = cursor.fetchone()
+
+                if result is not None:
+                    link = {"code": result[0], "link": result[1]}
+                    links.append(link)
+
+            links_json = json.dumps(links)  # 将列表转换为JSON字符串
+            return HttpResponse(links_json, content_type='application/json')
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+class find_code_link(APIView):
+    def post(self, request):
+        query = '''
+                SELECT 
+                LEFT(o.merchant_code, LENGTH(o.merchant_code)-1) as code,
+                CONCAT('https://haohuo.jinritemai.com/ecommerce/trade/detail/index.html?id=',o.product_id)
+                FROM taiwei_orders as o
+                JOIN taiwei_commodity as c
+                ON o.product_id = c.commodity_code
+                WHERE LEFT(o.merchant_code, LENGTH(o.merchant_code)-1) = %s
+                ORDER BY negative_review_rate,positive_review_count DESC,quality_return_rate
+                LIMIT 1 
+            '''
+        excel_file = request.FILES.get('excel-file')
+
+        df = pd.read_excel(excel_file, header=0)
+        try:
+            with connection.cursor() as cursor:
+                links = []
+                for index, row in df.iterrows():
+                    code = row[1]
+                    cursor.execute(query, [code])
+                    result = cursor.fetchone()
+                    if result is not None:
+                        link = {"code": result[0], "link": result[1]}
+                        links.append(link)
+                links_json = json.dumps(links)  # 将列表转换为JSON字符串
+                print(links_json)
+                return HttpResponse(links_json, content_type='application/json')
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)

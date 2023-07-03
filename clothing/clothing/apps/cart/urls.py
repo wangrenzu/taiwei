@@ -19,4 +19,6 @@ from . import views
 
 urlpatterns = [
     path("", views.CartInfo.as_view()),
+    path("getCartLink/", views.get_cart_link),
+    path("updateCodeLink/", views.find_code_link.as_view()),
 ]

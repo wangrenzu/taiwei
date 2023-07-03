@@ -6,6 +6,8 @@ const cart = reactive({
     cart_list: [],  // 购物车信息
     code_list: {},  // 购物车所有的款号
     cart_code: null,    // 款号用于加入购物车
+    codes: [],           //购物车所有款号
+    update_code: false,        //上传款号窗口
     /**
      * 加入购物车
      * @param code 款号
@@ -53,6 +55,13 @@ const cart = reactive({
             code_list: this.code_list
         })
     },
+    /**
+     * 获取购物车商品链接
+     * @returns {Promise<axios.AxiosResponse<any>>}
+     */
+    getCartLink() {
+        return http.get(`cart/getCartLink?codes=${this.codes}`);
+    }
 })
 
 
