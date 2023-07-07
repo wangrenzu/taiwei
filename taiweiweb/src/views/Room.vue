@@ -102,7 +102,7 @@ const getVipUser = () => {
   home.getVipUser().then(response => {
     home.vipUser_list = response.data.original_data
   }).catch(err => {
-    ElMessage(err)
+    ElMessage.error(err)
   })
 }
 getVipUser()

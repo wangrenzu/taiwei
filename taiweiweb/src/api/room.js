@@ -11,7 +11,8 @@ const room = reactive({
     integration: [],        // 整合表信息
     banner: [],            // 弹幕信息
     show_input1: false,      // 是否显示修改款号对话框
-    show_input2: false,       // 是否显示修改库存对话框
+    show_input2: false,      // 是否显示修改库存对话框
+    sale_text_list: ["备注1", "备注2", "备注3", "备注4"],                        //库存信息备注
     salesArray: [],         // 库存信息
     result: [],             // 客户购买商品信息
     live_data: {},          // 正在讲解的商品信息
@@ -24,6 +25,9 @@ const room = reactive({
     room_live_code: '',  // 本次讲解商品的款号 用于修改
     inp_room_live_code: false,      // 是否显示本次讲解修改款号对话框
     sale_text: '备注',                // 备注
+    product_info: [],       //商品讲解数据
+    room_time: 1,        //讲解时间
+    product_info_add_dict: {},    //本讲解商品信息的增量信息
     // 开始抓取直播间内容
     run(room_name) {
         return http.post('/room/roomInfo/', {
@@ -84,6 +88,33 @@ const room = reactive({
 
         })
     },
+    /**
+     * 添加本次讲解信息
+     * @param room_name
+     * @returns {Promise<axios.AxiosResponse<any>>}
+     * @constructor
+     */
+    ProductInfo(room_name) {
+        return http.post('/room/productInfo/', {
+            room_name: room_name,
+            info: this.product_info_add_dict,
+        })
+    },
+    /**
+     * 获取商品讲解信息
+     * @param room_name
+     * @returns {Promise<axios.AxiosResponse<any>>}
+     */
+    getProductInfo(room_name) {
+        return http.get('/room/productInfo/', {
+            params: {
+                room_name: room_name,
+                date_time: this.date_time,
+                session: this.session,
+                room_live_code: this.room_live_code,
+            }
+        })
+    }
 })
 
 export default room;

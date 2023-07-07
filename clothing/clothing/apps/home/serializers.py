@@ -1,7 +1,8 @@
 from datetime import datetime
 
 from rest_framework import serializers
-from .models import Order, User, Report, StockIn, OrderTracking, Stock, UpdateStatus, VipUser, StyleStatus
+from .models import Order, User, Report, StockIn, OrderTracking, Stock, UpdateStatus, VipUser, StyleStatus, \
+    NewStyleStatusTracking
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -90,6 +91,7 @@ class StyleStatusSerializer(serializers.ModelSerializer):
     class Meta:
         model = StyleStatus
         fields = '__all__'
+
 
 class UserSerializer(serializers.ModelSerializer):
     total_quantity = serializers.IntegerField()
@@ -424,3 +426,9 @@ class Search11Order(serializers.Serializer):
             'order_quantity', 'price', 'live_deal_item_count', 'pre_shipment_refund_rate',
             'post_shipment_refund_rate', 'order_submit_time', 'one_live_exposure_count',
             'one_live_deal_item_count', 'quantity', 'first_registration_time', 'last_registration_time')
+
+
+class NewStyleStatusTrackingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NewStyleStatusTracking
+        fields = '__all__'

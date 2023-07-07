@@ -92,7 +92,24 @@ const routes = [
         name: "StyleStatus",
         component: () => import("../views/StyleStatus.vue")
     },
-
+    {
+        meta: {
+            title: "新款状态跟踪",
+            keepAlive: true
+        },
+        path: "/NewStyleTracking/",
+        name: "NewStyleTracking",
+        component: () => import("../views/NewStyleTracking.vue")
+    },
+    {
+        meta: {
+            title: "测试",
+            keepAlive: true
+        },
+        path: "/testdemo/",
+        name: "testdemo",
+        component: () => import("../views/TestDemo.vue")
+    },
 
 ]
 

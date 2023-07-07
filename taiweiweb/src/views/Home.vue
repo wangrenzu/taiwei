@@ -186,7 +186,8 @@
         </el-button>
         <el-button color="#F3A627" type="primary" @click="showCart('S姐购物车')"><p style="color: white">S姐购物车</p>
         </el-button>
-
+        <el-button color="#F3A627" type="primary" @click="NewStyleTracking"><p style="color: white">新款状态跟踪</p>
+        </el-button>
 
       </div>
       <div>
@@ -997,11 +998,12 @@ const addCart = (code, name, source) => {
    * @param {string} source - 来源，从哪个地方加入的购物车
    */
   cart.addCart(code, name, source).then(response => {
-    alert("添加成功")
-    ElMessage("添加成功")
+    ElMessage({
+      message: "添加成功",
+      type: 'success',
+    })
   }).catch(err => {
-    alert("添加失败")
-    ElMessage(err)
+    ElMessage.error("添加失败")
   })
 }
 
@@ -1071,9 +1073,12 @@ const filteredData = () => {
 //添加vip用户
 const addVipUser = (name) => {
   home.addVipUser(name).then(response => {
-    ElMessage("添加成功")
+    ElMessage({
+      message: "添加成功",
+      type: 'success',
+    })
   }).catch(err => {
-    ElMessage(err)
+    ElMessage.error(err)
   })
 }
 
@@ -1111,6 +1116,9 @@ const showStyleStatus = () => {
   window.open('/StyleStatus/', '_blank')
 }
 
+const NewStyleTracking = () => {
+  window.open('/NewStyleTracking/', '_blank')
+}
 // 导出订单信息表格的字段
 
 

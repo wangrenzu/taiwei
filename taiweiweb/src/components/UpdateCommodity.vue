@@ -25,16 +25,17 @@ const success = (res) => {
   home.show_update_commodity = false
   home.size = 20
   home.buttonType5 = 'success'
-  home.putUpdateStatus(5).then(response=>{
-    console.log(response)
-  }).catch(err=>{
+  home.putUpdateStatus(5).then(response => {
+  }).catch(err => {
     console.log(err)
   })
-  ElMessage(res)
+  ElMessage({
+    message: res.message,
+    type: 'success',
+  })
 }
 const error = (err) => {
-  ElMessage(err)
-  console.log(err)
+  ElMessage.error(err)
 }
 
 </script>

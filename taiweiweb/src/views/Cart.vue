@@ -169,14 +169,17 @@ const getCart = () => {
 }
 getCart()
 
+
 // 把某个商品从购物车中删除
 const delCart = (id) => {
   cart.delCart(id).then(response => {
-    ElMessage('删除成功')
+    ElMessage({
+      message: "删除成功",
+      type: 'success',
+    })
     getCart()
   }).catch(err => {
-    console.log(err)
-    ElMessage(err)
+    ElMessage.error("添加失败")
   })
 }
 
@@ -188,10 +191,12 @@ const refresh = () => {
   })
   cart.refreshCart().then(response => {
     getCart()
-    alert('刷新成功')
+    ElMessage({
+      message: "刷新成功",
+      type: 'success',
+    })
   }).catch(err => {
-    console.log(err)
-    alert('刷新失败')
+    ElMessage.error("刷新失败")
   })
 }
 
@@ -203,12 +208,13 @@ const addCart = () => {
     return
   }
   cart.addCart(cart.cart_code, route.params.cart_name, route.params.cart_name).then(response => {
-    alert("添加成功")
-    ElMessage("添加成功")
+    ElMessage({
+    message: "添加成功",
+    type: 'success',
+  })
     getCart()
   }).catch(err => {
-    alert("添加失败")
-    ElMessage(err)
+    ElMessage.error("添加失败")
   })
 }
 

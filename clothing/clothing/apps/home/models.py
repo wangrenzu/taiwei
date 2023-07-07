@@ -350,3 +350,24 @@ class StyleStatus(models.Model):
         verbose_name = '新款状态'
         verbose_name_plural = '新款状态'
         db_table = 'taiwei_style_status'
+
+
+class NewStyleStatusTracking(models.Model):
+    code = models.CharField(verbose_name='款号', max_length=50, null=True)
+    order_date = models.DateField(verbose_name='下单日期', null=True)
+    expected_date = models.DateField(verbose_name='预计日期', null=True)
+    total_quantity = models.IntegerField(verbose_name='总件数', null=True)
+    status = models.CharField(verbose_name='状态', max_length=50, null=True)
+    label = models.CharField(verbose_name='标签', max_length=50, null=True)
+    caichuang_stock = models.IntegerField(verbose_name='裁床库存', null=True)
+    chejian_stock = models.IntegerField(verbose_name='车间库存', null=True)
+    houdao_stock = models.IntegerField(verbose_name='后道库存', null=True)
+    taiwei_stock = models.IntegerField(verbose_name='泰维库存', null=True)
+    yifa_stock = models.IntegerField(verbose_name='意法库存', null=True)
+    moya_stock = models.IntegerField(verbose_name='茉雅库存', null=True)
+    notes = models.CharField(verbose_name="备注", null=True, max_length=255)
+
+    class Meta:
+        verbose_name = '新款状态跟踪'
+        verbose_name_plural = '新款状态跟踪'
+        db_table = 'taiwei_new_style_status_tracking'

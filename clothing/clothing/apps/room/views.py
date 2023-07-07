@@ -2,8 +2,8 @@ import asyncio
 from django_redis import get_redis_connection
 from rest_framework.views import APIView
 from datetime import datetime, timedelta
-from .models import Room, Integration
-from .serializers import RoomSerializer, IntegrationSerializer
+from .models import Room, Integration, ProductInformation
+from .serializers import RoomSerializer, IntegrationSerializer, ProductInfoSerializer
 from rest_framework.response import Response
 
 from clothing.util.getGood import getGoods, getGoodsSencode, getLive, fetch_barrage
@@ -174,9 +174,10 @@ class RoomView(APIView):
             if room_live_code:
                 live_code = room_live_code
             else:
-                live_code = code[0]
+                live_code = "04112"
             # code = ['04112', '58',
             #         'https://p9-aio.ecombdimg.com/obj/ecom-shop-material/PheaHqHs_m_85287e3d0da2afa47527761e03ade962_sx_491791_www1030-1030']
+            # live_code = "04112"
             query2 = """
                 SELECT
                 taiwei_integration.*,
@@ -193,6 +194,7 @@ class RoomView(APIView):
             data2 = serializer2.data
             data4 = code[0]
         except Exception as e:
+            print(e)
             data2 = None
             data4 = None
         try:
@@ -322,3 +324,75 @@ class Barrage(APIView):
             return Response({'status': 'success'}, status=200)
         except Exception as e:
             return Response({'status': 'error', 'message': str(e)}, status=500)
+
+
+# 获取讲解信息
+class ProductInfoView(APIView):
+    def post(self, request):
+        info = request.data.get("info")
+        # 直播间名称
+        room_name = request.data.get("room_name")
+        # 款号
+        code = next(iter(info.keys()))
+        value = info[code]
+        # 曝光量
+        product_show_ucnt = value['add_product_show_ucnt']
+        # 点击量
+        product_click_ucnt = value['add_product_click_ucnt']
+        # 销量
+        pay_combo_cnt = value['add_pay_combo_cnt']
+        # 总曝光人数
+        room_live_exposure_sum = value['add_room_live_exposure_sum']
+        # 总进入直播间人数
+        in_room_live = value['add_in_room_live']
+        # 点击率
+        click_rate = value['click_rate']
+        # 成交率
+        success_reta = value['deal_rate']
+        # 进入率
+        in_live_rate = value['in_live_rate']
+
+        # 讲解时间
+        time = value['time']
+
+        # 当前日期
+        date_time = datetime.now().strftime("%Y-%m-%d")
+        # 场次
+        session = "第一场"
+        try:
+            productInfo = ProductInformation(
+                code=code,
+                room_name=room_name,
+                date=date_time,
+                exposure_count=product_show_ucnt,
+                click_count=product_click_ucnt,
+                total_exposure=room_live_exposure_sum,
+                entry_count=in_room_live,
+                live_time=time,
+                click_rate=click_rate,
+                success_reta=success_reta,
+                in_live_rate=in_live_rate,
+                pay_combo_cnt=pay_combo_cnt,
+                session=session,
+            )
+            productInfo.save()
+            return Response({'status': 'success'}, status=200)
+        except Exception as e:
+            return Response({'status': 'error', 'message': str(e)}, status=500)
+
+    def get(self, request):
+        date_time = request.query_params.get('date_time')
+        if date_time:
+            date_time = datetime.strptime(date_time, "%Y-%m-%dT%H:%M:%S.%fZ")
+            previous_day = date_time + timedelta(days=1)
+            date_time = previous_day.strftime("%Y-%m-%d")
+        else:
+            now = datetime.now()
+            date_str = now.strftime("%Y-%m-%d")
+            date_time = date_str
+
+        room_name = request.query_params.get('room_name') or 'S姐直播间'
+        session = request.query_params.get('session') or '第一场'
+        queryset = ProductInformation.objects.filter(date=date_time, session=session, room_name=room_name)
+        serializer = ProductInfoSerializer(queryset, many=True)
+        return Response(serializer.data)

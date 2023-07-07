@@ -26,17 +26,17 @@ const success = (res) => {
   home.size = 20
   home.buttonType6 = 'success'
   home.putUpdateStatus(6).then(response=>{
-    console.log(response)
   }).catch(err=>{
     console.log(err)
   })
-  ElMessage(res)
+  ElMessage({
+    message: res.message,
+    type: 'success',
+  })
 }
 const error = (err) => {
-  ElMessage(err)
-  console.log(err)
+  ElMessage.error(err)
 }
-
 </script>
 
 <style scoped>

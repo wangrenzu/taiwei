@@ -87,7 +87,7 @@
                 v-if="room.inp_room_live_code"
                 @keyup.enter="room.inp_room_live_code=false">
             </el-input>
-            <span v-else @click="room.inp_room_live_code=true">{{ room.live_code }}</span>
+            <span v-else @click="room.inp_room_live_code=true">{{ room.room_live_code }}</span>
           </div>
         </div>
 
@@ -117,13 +117,23 @@
         <div class="bottom_right">
           <div class="bottom_right_top">
             <div class="bottom_right_top_left">
-              <p v-if="room.salesArray"
-                 v-for="(sale, index) in room.salesArray" :key="index">
-                <el-input v-if="room.show_input2 === index" style="width: 180px"
-                          v-model="room.salesArray[index]"
-                          @keyup.enter="room.show_input2=false"></el-input>
-                <span v-else @click="room.show_input2=index">{{ sale }}</span>
-              </p>
+              <div class="bottom_right_top_left_left">
+                <p v-if="room.salesArray"
+                   v-for="(sale, index) in room.salesArray" :key="index">
+                  <span>{{ sale }}</span>
+                </p>
+              </div>
+              <div class="bottom_right_top_left_right">
+                <p v-for="(sale_text,index,) in room.sale_text_list">
+                  <el-input
+                      v-if="room.show_input2===index"
+                      style="width: 100px"
+                      v-model="room.sale_text_list[index]"
+                      @keydown.enter="room.show_input2=' '">
+                  </el-input>
+                  <span v-else @click="room.show_input2=index">{{ sale_text }}</span>
+                </p>
+              </div>
 
             </div>
             <div class="bottom_right_top_right">可卖{{ room.integration[0].available_quantity }}</div>
@@ -279,8 +289,25 @@
   <el-card class="box-card" style="max-height: 40px; overflow: auto;">
     <div class="text item">{{ room.message[room.message.length - 1] }}</div>
   </el-card>
-  <el-table :data="room.room_list" style="width: 100%" border fit height="800"
-            :header-cell-class-name="headerCellStyle">
+  <el-table
+      :data="room.room_list"
+      style="width: 100%" border fit height="800"
+  >
+    <el-table-column type="expand">
+      <template #default="props">
+        <el-table :data="getProductCode(props.row.code)" fit style="width: 60%;">
+          <el-table-column prop="exposure_count" label="曝光" show-overflow-tooltip></el-table-column>
+          <el-table-column prop="click_count" label="点击" show-overflow-tooltip></el-table-column>
+          <el-table-column prop="click_rate" label="点击率" show-overflow-tooltip></el-table-column>
+          <el-table-column prop="success_reta" label="成交率" show-overflow-tooltip></el-table-column>
+          <el-table-column prop="total_exposure" label="总曝光次" show-overflow-tooltip></el-table-column>
+          <el-table-column prop="entry_count" label="进入次数" show-overflow-tooltip></el-table-column>
+          <el-table-column prop="in_live_rate" label="进入率" show-overflow-tooltip></el-table-column>
+          <el-table-column prop="pay_combo_cnt" label="销量" show-overflow-tooltip></el-table-column>
+          <el-table-column prop="live_time" label="讲解时间" show-overflow-tooltip></el-table-column>
+        </el-table>
+      </template>
+    </el-table-column>
     <el-table-column prop="product_id" label="商品序号" width="80" show-overflow-tooltip/>
     <el-table-column label="款号" width="120">
       <template #default="scope">
@@ -497,6 +524,14 @@ const getSumScore = (name) => {
   }
 }
 
+const getProductCode = (code) => {
+  const ProductCodeInfos = room.product_info.filter(info => info.code.includes(code.slice(1)));
+  if (ProductCodeInfos) {
+    return ProductCodeInfos;
+  } else {
+    return [];
+  }
+}
 
 const route = useRoute();
 // 是否开始抓取
@@ -513,7 +548,6 @@ let err_num = 0
 const runGetGoods = () => {
   // 开启抓取弹幕
   room.Barrage(route.params.room_name).then(response => {
-    console.log(response)
   }).catch(err => {
     console.log(err)
   })
@@ -535,7 +569,10 @@ const runGetGoods = () => {
     // 获取当前的时间
     const time = hours + ':' + minutes + ":" + seconds
     room.run(room_name).then(response => {
-      ElMessage('抓取成功')
+      ElMessage({
+        message: '抓取成功',
+        type: 'success',
+      })
       room.message.push(time + '抓取成功')
       err_num = 0
       // 每次抓取成功重新渲染一次数据
@@ -551,7 +588,7 @@ const runGetGoods = () => {
         return; // Added return statement to prevent further execution
       }
       room.message.push(time + '抓取失败')
-      ElMessage(err)
+      ElMessage.error(err)
     })
   }
 
@@ -623,20 +660,24 @@ const getRoomBack = () => {
   // 直播间名称
   const room_name = route.params.room_name
   room.getRoomInfo(room_name).then(response => {
+    getProductInfo()
     // 商品信息
     room.room_list = response.data.data1
-    if (response.data.data2[0]) {
+    if (response.data.data2) {
       //规程和库存量
-      room.salesArray = response.data.data2[0].specification_sales.split(' ')
       room.integration = response.data.data2
-    } else {
-      room.salesArray = []
+      room.salesArray = room.integration[0].specification_sales.split(' ')
     }
     if (response.data.data3) {
       // 本次讲解商品的整合表数据
       if (room.live_code !== response.data.data4) {
+        addProductInfo()
+        room.sale_text_list = ["备注1", "备注2", "备注3", "备注4"]
+        room.live_code = response.data.data4
+        room.room_live_code = response.data.data4
         // 当讲解中的商品发生改变清空之前的数据重新计算
         room.add_dict = {}
+        room.product_info_add_dict = {}
         notes.value = '无'
         // 获取本场的金额
         start_market_price.value = response.data.data3.market_price
@@ -644,6 +685,7 @@ const getRoomBack = () => {
         // 如果商品没有改变就计算本次讲解增加的金额
         market_price.value = response.data.data3.market_price - start_market_price.value
       }
+
       room.live_data = response.data.data3
 
       if (!room.add_dict.hasOwnProperty(response.data.data4)) {
@@ -654,7 +696,6 @@ const getRoomBack = () => {
           'room_live_exposure_sum': room.live_data.room_live_exposure_sum,
           'in_room_live': room.live_data.in_room_live,
         }
-        room.live_code = response.data.data4
         add_product_click_ucnt.value = room.live_data.product_click_ucnt
         add_product_show_ucnt.value = room.live_data.product_show_ucnt
         add_pay_combo_cnt.value = room.live_data.pay_combo_cnt
@@ -671,6 +712,23 @@ const getRoomBack = () => {
         room.live_code = response.data.data4
         success_rate.value = (C.value === 0 || DZ.value / C.value > 0.9) ? '' : DZ.value / C.value
       }
+      room.product_info_add_dict[response.data.data4] = {
+        "add_product_show_ucnt": add_product_show_ucnt.value,
+        "add_product_click_ucnt": add_product_click_ucnt.value,
+        "success_rate": success_rate.value,
+        "add_pay_combo_cnt": add_pay_combo_cnt.value,
+        "add_room_live_exposure_sum": add_room_live_exposure_sum.value,
+        "add_in_room_live": add_in_room_live.value,
+        "click_rate": (success_rate.value === '') ? '' : (success_rate.value * 100).toFixed(2) + '%',
+        "deal_rate": (add_pay_combo_cnt.value / DZ.value * 100).toFixed(2) + '%',
+        "in_live_rate": ((add_in_room_live.value / add_room_live_exposure_sum.value) * 100).toFixed(2) + "%",
+        'time': 1,
+      }
+      setInterval(function () {
+        if (room.product_info_add_dict[response.data.data4]) {
+          room.product_info_add_dict[response.data.data4].time++;
+        }
+      }, 1000);
     }
   }).catch(err => {
     console.log(err)
@@ -678,6 +736,14 @@ const getRoomBack = () => {
 }
 getRoomBack()
 
+
+//添加商品讲解信息
+const addProductInfo = () => {
+  room.ProductInfo(route.params.room_name).then(response => {
+  }).catch(err => {
+    console.log(err)
+  })
+}
 
 // 判断更改进度条的颜色
 const getColor = percentage => {
@@ -694,8 +760,12 @@ const getColor = percentage => {
 const editOrderPrice = (code, price) => {
   room.show_input1 = false
   room.editOrderPrice(code, price).then(response => {
+    ElMessage({
+    message: "更改成功",
+    type: 'success',
+  })
   }).catch(err => {
-    console.log(err)
+    ElMessage.error("修改失败")
   })
 }
 
@@ -720,10 +790,13 @@ const options = [
 const editCode = (id, code) => {
   room.editingRow = null
   room.editCode(id, code).then(response => {
-    ElMessage("修改成功")
+    ElMessage({
+      message: "修改成功",
+      type: 'success',
+    })
     getRoomBack()
   }).catch(err => {
-    ElMessage(err)
+    ElMessage.error(err)
   })
 }
 
@@ -740,11 +813,12 @@ watch(
 const addCart = (code) => {
   name = route.params.room_name.substring(0, 2) + '购物车'
   cart.addCart(code, name, route.params.room_name).then(response => {
-    alert("添加成功")
-    ElMessage("添加成功")
+    ElMessage({
+      message: "添加成功",
+      type: 'success',
+    })
   }).catch(err => {
-    alert("添加失败")
-    ElMessage(err)
+    ElMessage.error(err)
   })
 }
 // 进入弹幕的websocket
@@ -775,8 +849,13 @@ socket2.onmessage = function (event) {
   }
 
 }
-
-
+const getProductInfo = () => {
+  room.getProductInfo(route.params.room_name).then(response => {
+    room.product_info = response.data
+  }).catch(err => {
+    console.log(err)
+  })
+}
 </script>
 
 <style scoped>
@@ -1168,6 +1247,30 @@ p {
 .bottom_right_top_left {
   background-color: #EBF1DE;
   flex: 3;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-weight: bold;
+  font-size: 1.2vw;
+}
+
+.bottom_right_top_left_left {
+  background-color: #EBF1DE;
+  flex: 1.5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-weight: bold;
+  font-size: 1.2vw;
+}
+
+.bottom_right_top_left_right {
+  background-color: #EBF1DE;
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;

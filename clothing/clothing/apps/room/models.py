@@ -50,3 +50,24 @@ class Integration(models.Model):
         verbose_name = '整合表'
         verbose_name_plural = '整合表'
         db_table = 'taiwei_Integration'
+
+
+class ProductInformation(models.Model):
+    code = models.CharField(max_length=255, verbose_name='款号', null=True)
+    date = models.DateField(verbose_name='日期', null=True)
+    exposure_count = models.IntegerField(verbose_name='曝光量', null=True)
+    click_count = models.IntegerField(verbose_name='点击人数', null=True)
+    total_exposure = models.IntegerField(verbose_name='总曝光次数', null=True)
+    entry_count = models.IntegerField(verbose_name='进入次数', null=True)
+    room_name = models.CharField(max_length=20, verbose_name="直播间名称", null=True)
+    live_time = models.CharField(max_length=255, verbose_name="讲解时间", null=True)
+    session = models.CharField(max_length=10, verbose_name="场次", null=True)
+    click_rate = models.CharField(max_length=20, verbose_name="点击率", null=True)
+    success_reta = models.CharField(max_length=20, verbose_name="成交率", null=True)
+    in_live_rate = models.CharField(max_length=20, verbose_name="进入率", null=True)
+    pay_combo_cnt = models.IntegerField(verbose_name="销量", null=True)
+
+    class Meta:
+        verbose_name = '商品讲解信息'
+        verbose_name_plural = '商品讲解信息'
+        db_table = "taiwei_product_info"

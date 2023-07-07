@@ -23,28 +23,34 @@
 
 import home from "../api/home.js";
 import {ElMessage} from "element-plus";
-import {watch} from "vue";
+
 
 
 // 获取所有的vip用户
 const getVipUser = () => {
   home.getVipUser().then(response => {
-    console.log(response)
+    ElMessage({
+      message: "获取成功",
+      type: 'success',
+    })
     home.vipUser_list = response.data.original_data
   }).catch(err => {
-    ElMessage(err)
+    ElMessage.error(err)
   })
 }
 getVipUser()
 
 
 // 根据名字删除vip用户
-const delVipUser = (name)=>{
+const delVipUser = (name) => {
   home.delVipUser(name).then(response => {
-    ElMessage("删除成功")
+    ElMessage({
+      message: "删除成功",
+      type: 'success',
+    })
     getVipUser()
   }).catch(err => {
-    ElMessage(err)
+    ElMessage.error(err)
   })
 }
 

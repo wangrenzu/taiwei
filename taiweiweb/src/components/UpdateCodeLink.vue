@@ -48,10 +48,13 @@ const exportExcel = (exportFields, data_list) => {
 const success = (response) => {
   exportExcel(cart_link, response)
   cart.update_code = false
+  ElMessage({
+    message: response.message,
+    type: 'success',
+  })
 }
 const error = (err) => {
-  ElMessage(err)
-  console.log(err)
+  ElMessage.error(err)
 }
 
 </script>

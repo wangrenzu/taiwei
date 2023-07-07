@@ -63,22 +63,28 @@ getTrakcing()
 // 删除某个款号信息
 const delTracking = (id) => {
   home.delTrakcing(id).then(response => {
-    ElMessage('删除成功')
+    ElMessage({
+      message: "删除成功",
+      type: 'success',
+    })
     getTrakcing()
   }).catch(err => {
     console.log(err)
-    ElMessage(err)
+    ElMessage.error(err)
   })
 }
 
 // 添加款号到款号追踪中
 const addTracking = () => {
   home.addTracking().then(response => {
-    ElMessage('添加成功')
+    ElMessage({
+      message: "添加成功",
+      type: 'success',
+    })
     getTrakcing()
   }).catch(err => {
     console.log(err)
-    ElMessage(err)
+    ElMessage.error(err)
   })
 }
 // 刷新状态和信息

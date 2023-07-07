@@ -298,6 +298,31 @@ const home = reactive({
             tags: tags,
             remarks: remarks,
         })
+    },
+    /**
+     * 获取新款状态跟踪所有内容
+     * @returns {Promise<axios.AxiosResponse<any>>}
+     */
+    getNewStyleStatusTrackingView() {
+        return http.get("/home/NewStyleStatusTracking/")
+    },
+    /**
+     * 移动新款状态跟踪
+     * @returns {Promise<axios.AxiosResponse<any>>}
+     */
+    updateNewStyleStatusTrackingView(id, label,expected_date) {
+        return http.patch("/home/NewStyleStatusTracking/", {
+            id: id,
+            label: label,
+            expected_date: expected_date,
+        })
+    },
+    /**
+     * 执行存储过程移动池子
+     * @returns {Promise<axios.AxiosResponse<any>>}
+     */
+    move(){
+        return http.get("home/move/")
     }
 })
 

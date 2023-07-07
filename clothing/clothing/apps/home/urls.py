@@ -42,4 +42,6 @@ urlpatterns = [
     path('orderTracking/', views.OrderTrackingView.as_view()),
     path('searchCode/', views.SearchCodeView.as_view()),
     path('StyleStatusView/', views.StyleStatusView.as_view()),
+    path('NewStyleStatusTracking/', views.NewStyleStatusTrackingView.as_view()),
+    path('move/', views.move_new_style_status_tracking),
 ]

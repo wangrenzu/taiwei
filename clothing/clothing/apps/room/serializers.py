@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Room, Integration
+from .models import Room, Integration, ProductInformation
 
 
 class RoomSerializer(serializers.ModelSerializer):
@@ -36,3 +36,9 @@ class IntegrationSerializer(serializers.ModelSerializer):
                   'cost', 'specification_sales', 'available_quantity', 'stall_sales',
                   'stall_price', 'order_price', 'category', 'r_code', 'first_registration_time',
                   'last_registration_time')
+
+
+class ProductInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductInformation
+        fields = "__all__"

@@ -11,13 +11,15 @@ from rest_framework.views import APIView
 
 import msoffcrypto
 from .models import Order, User, Goods, Materials, Commodity, Stock, Report, SalesRecord, new_Stock, StockIn, \
-    OrderTracking, OneCommodity, UpdateStatus, VipUser, Size, newStyle, repeatOrder, Fabric, Factory, StyleStatus
+    OrderTracking, OneCommodity, UpdateStatus, VipUser, Size, newStyle, repeatOrder, Fabric, Factory, StyleStatus, \
+    NewStyleStatusTracking
 from .paginations import OrderPagination
 from .serializers import OrderSerializer, UserOrderSerializer, \
     Search3Order, Search3Result, Search4Order, Search4Result, UserInfoSerializer, Search5Order, Search5Result, \
     ReportSerializer, CodeInfoSerializer, Search6Order, Search6Result, StockInSerializer, StockInSerializer2, \
     OrderTrackingSerializer, StockInSerializer3, UpdateStatusSerializer, VipUserSerializer, Search10Order, \
-    Search10Result, Search11Order, Search11Result, StockInSerializer12, StyleStatusSerializer
+    Search10Result, Search11Order, Search11Result, StockInSerializer12, StyleStatusSerializer, \
+    NewStyleStatusTrackingSerializer
 from datetime import datetime, timedelta
 from django.db import transaction
 import logging
@@ -2149,11 +2151,13 @@ class UpdateOneCommodity(APIView):
         commodity_list = []
         date_time = datetime.now().strftime("%Y-%m-%d")
         for index, row in df.iterrows():
+            print(row["日期"])
             if '日期' in row.index:
                 date_time = row['日期']
                 date_time = date_time.strftime("%Y-%m-%d")
             else:
                 date_time = datetime.now().strftime("%Y-%m-%d")
+
             oneCommodity = OneCommodity(
                 commodity_image=row["商品图片"],
                 commodity_title=row["商品标题"],
@@ -2171,7 +2175,6 @@ class UpdateOneCommodity(APIView):
                 live_deal_user_count=row["直播间成交人数"],
                 live_deal_conversion_rate=row["直播间成交转化率"],
                 date_time=date_time
-
             )
             commodity_list.append(oneCommodity)
         try:
@@ -3000,6 +3003,8 @@ class updateRepeatOrder(APIView):
             date_time = datetime.strptime(date_time, "%Y-%m-%d")
             StyleStatus.objects.filter(date_time=date_time).delete()
             for index, row in df1.iterrows():
+                if str(row.iloc[6]).strip().__len__() == 0 or pd.isnull(row.iloc[6]):  # 检查 总件数 是否为空
+                    row.iloc[6] = 100
                 row = row.replace({' ': None, '/': None})
                 row = row.where(pd.notnull(row), None)
                 if pd.isnull(row.iloc[0]):  # 检查 row.iloc[0] 是否为空
@@ -3018,16 +3023,29 @@ class updateRepeatOrder(APIView):
                     material_fill_craft_package_material_post_road=row.iloc[12] or None,
                     category=row.iloc[15] or None,
                 )
+
                 newStyle_list.append(new_style)
                 status_time_timestamp = row.iloc[0]
                 status_time = status_time_timestamp.to_pydatetime()
+                # target_date = datetime(2023, 6, 2)
+                # try:
+                #     if status_time > target_date:
+                #         insert_new_style_status_tracking(status_time, row.iloc[6], '新款', row.iloc[2])
+                # except Exception as e:
+                #     return JsonResponse({'error': str(e)}, status=500)
                 try:
                     # 调用insert_style_status把该条内容插入数据库
+
                     insert_style_status(status_time, date_time, '新款', row.iloc[2])
+                    if not NewStyleStatusTracking.objects.filter(code=row.iloc[2]).exists():
+                        insert_new_style_status_tracking(status_time, row.iloc[6], '新款', row.iloc[2])
+
                 except DatabaseError as e:
                     return JsonResponse({'error': str(e)}, status=500)
 
             for index, row in df2.iterrows():
+                if str(row.iloc[6]).strip().__len__() == 0 or pd.isnull(row.iloc[6]):  # 检查 总件数 是否为空
+                    row.iloc[6] = 100
                 if pd.isnull(row.iloc[0]):  # 检查 row.iloc[0] 是否为空
                     continue  # 如果为空，则跳过当前迭代并进入下一次迭代
                 row = row.replace({' ': None, '/': None})
@@ -3045,8 +3063,17 @@ class updateRepeatOrder(APIView):
                 repeatOrder_list.append(repeat_order)
                 status_time_timestamp = row.iloc[0]
                 status_time = status_time_timestamp.to_pydatetime()
+                # target_date = datetime(2023, 6, 2)
+                # try:
+                #     if status_time > target_date:
+                #         insert_new_style_status_tracking(status_time, row.iloc[6], '翻单', row.iloc[2])
+                # except Exception as e:
+                #     return JsonResponse({'error': str(e)}, status=500)
                 try:
                     insert_style_status(status_time, date_time, '翻单', row.iloc[2])
+                    if not NewStyleStatusTracking.objects.filter(code=row.iloc[2], status="翻单",
+                                                                 order_date=row.iloc[0]).exists():
+                        insert_new_style_status_tracking(status_time, row.iloc[6], '翻单', row.iloc[2])
                 except DatabaseError as e:
                     return JsonResponse({'error': str(e)}, status=500)
 
@@ -3286,8 +3313,8 @@ def insert_style_status(status_time, date_time, tag, code):
                 IF(
                     (DATE_SUB(CURDATE(), INTERVAL 20 DAY) <= %s)
                     AND
-                    ((status = '新款' OR 
-                    (a.cai_chuang+a.cai_chuang+a.hou_dao+a.tai_wei+a.yi_fa+a.mo_ya) = 0)
+                    ((status = '新款' AND 
+                    ((a.cai_chuang+a.che_jian+a.hou_dao+a.tai_wei+a.yi_fa+a.mo_ya) = 0))
                     OR
                     (status = '翻单' AND (t.inventory2>0 OR a.che_jian<=s.che_jian))),
                     '没到车间',
@@ -3417,3 +3444,94 @@ def insert_style_status(status_time, date_time, tag, code):
         cursor.execute(query,
                        [status_time, date_time, difference_in_days, status_time, tag, code, code, code, code,
                         code, code, code, code, code, code, code, code, tag, code])
+
+
+def insert_new_style_status_tracking(order_date, total_quantity, status, code):
+    """
+    插入新款跟踪数据
+    :param order_date: 下单日期
+    :param total_quantity: 总件数
+    :param status: 新款还是翻单
+    :param code:   款号
+    :return:
+    """
+    query = """	
+        INSERT INTO taiwei_new_style_status_tracking
+        (code,order_date,expected_date,total_quantity,status,
+        label,caichuang_stock,chejian_stock,
+        houdao_stock,taiwei_stock,yifa_stock,moya_stock)
+        (
+        SELECT
+        code,
+        %s AS order_date,
+        DATE_ADD(%s, INTERVAL 10 DAY) AS expected_date,
+        %s AS total_quantity,
+        %s AS status,
+        "1"	AS label,
+        SUM(CASE WHEN house like "裁床%%" THEN inventory ELSE 0 END) AS caichuang_stock,
+        SUM(CASE WHEN house like "%%车间%%" THEN inventory ELSE 0 END) AS chejian_stock,
+        SUM(CASE WHEN house like "%%后道%%" THEN inventory ELSE 0 END) AS houdao_stock,
+        SUM(CASE WHEN house like "%%泰维%%" THEN inventory ELSE 0 END) AS taiwei_stock,
+        SUM(CASE WHEN house like "%%意法%%" THEN inventory ELSE 0 END) AS yifa_stock,
+        SUM(CASE WHEN house like "%%茉雅%%" THEN inventory ELSE 0 END) AS moya_stock
+        FROM taiwei_stock
+        WHERE code = %s
+        GROUP BY code
+        )
+    """
+
+    with connection.cursor() as cursor:
+        cursor.execute(query, [order_date, order_date, total_quantity, status, code])
+
+
+class NewStyleStatusTrackingView(APIView):
+    def get(self, request):
+        queryset1 = NewStyleStatusTracking.objects.filter(label="1")
+        queryset2 = NewStyleStatusTracking.objects.filter(label="2")
+        queryset3 = NewStyleStatusTracking.objects.filter(label="3")
+        queryset4 = NewStyleStatusTracking.objects.filter(label="4")
+        queryset5 = NewStyleStatusTracking.objects.filter(label="5")
+        queryset6 = NewStyleStatusTracking.objects.filter(label="6")
+        serializers1 = NewStyleStatusTrackingSerializer(instance=queryset1, many=True)
+        serializers2 = NewStyleStatusTrackingSerializer(instance=queryset2, many=True)
+        serializers3 = NewStyleStatusTrackingSerializer(instance=queryset3, many=True)
+        serializers4 = NewStyleStatusTrackingSerializer(instance=queryset4, many=True)
+        serializers5 = NewStyleStatusTrackingSerializer(instance=queryset5, many=True)
+        serializers6 = NewStyleStatusTrackingSerializer(instance=queryset6, many=True)
+
+        data = {
+            "data1": serializers1.data,
+            "data2": serializers2.data,
+            "data3": serializers3.data,
+            "data4": serializers4.data,
+            "data5": serializers5.data,
+            "data6": serializers6.data,
+        }
+        return JsonResponse(data)
+
+    def patch(self, request):
+        id = request.data.get('id')
+        label = request.data.get('label')
+        expected_date = request.data.get('expected_date')
+        conditions = {}
+        if label:
+            conditions["label"] = label
+        if expected_date:
+            conditions["expected_date"] = expected_date
+        try:
+            if conditions:
+                NewStyleStatusTracking.objects.filter(pk=id).update(**conditions)
+            return JsonResponse({'message': "success"}, status=200)
+        except Exception as e:
+            return JsonResponse({'err': str(e)}, status=500)
+
+
+def move_new_style_status_tracking(request):
+    try:
+        with transaction.atomic():
+            for i in range(4):
+                with connection.cursor() as cursor:
+                    cursor.callproc('move')  # Name of your stored procedure
+        return JsonResponse({'message': 'Procedure executed successfully'}, status=200)
+    except Exception as e:
+        return JsonResponse({'err': str(e)}, status=500)
