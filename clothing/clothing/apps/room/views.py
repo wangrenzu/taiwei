@@ -1,8 +1,11 @@
 import asyncio
+import traceback
+
+from django.http import JsonResponse
 from django_redis import get_redis_connection
 from rest_framework.views import APIView
 from datetime import datetime, timedelta
-from .models import Room, Integration, ProductInformation
+from .models import Room, Integration, ProductInformation, LiveRoomData
 from .serializers import RoomSerializer, IntegrationSerializer, ProductInfoSerializer
 from rest_framework.response import Response
 
@@ -170,11 +173,11 @@ class RoomView(APIView):
         serializer = RoomSerializer(queryset, many=True)
         try:
             room_live_code = request.query_params.get('room_live_code')
-            code = cache.get('code')[0]
+            code = cache.get(f'{room_name}code')[0]
             if room_live_code:
                 live_code = room_live_code
             else:
-                live_code = "04112"
+                live_code = code[0]
             # code = ['04112', '58',
             #         'https://p9-aio.ecombdimg.com/obj/ecom-shop-material/PheaHqHs_m_85287e3d0da2afa47527761e03ade962_sx_491791_www1030-1030']
             # live_code = "04112"
@@ -194,11 +197,10 @@ class RoomView(APIView):
             data2 = serializer2.data
             data4 = code[0]
         except Exception as e:
-            print(e)
             data2 = None
             data4 = None
         try:
-            data3 = cache.get('data3')
+            data3 = cache.get(room_name)
         except Exception as e:
             data3 = None
         return Response({'data1': serializer.data, 'data2': data2, 'data3': data3, 'data4': data4})
@@ -226,7 +228,7 @@ class RoomView(APIView):
                     data1 = getGoods("127.0.0.1:9531", room_id, getUrl)
                     data2 = getGoodsSencode("127.0.0.1:9531", room_id)
                     data3 = getLive("127.0.0.1:9531", room_id)
-                    cache.set('data3', data3)
+                    cache.set(room_name, data3)
                 elif room_name == '悦仓直播间':
                     rooms = Room.objects.filter(date_time=date_str, room_name='悦仓直播间')
                     if not rooms.exists():
@@ -234,7 +236,7 @@ class RoomView(APIView):
                     data1 = getGoods("127.0.0.1:9532", room_id, getUrl)
                     data2 = getGoodsSencode("127.0.0.1:9532", room_id)
                     data3 = getLive("127.0.0.1:9532", room_id)
-                    cache.set('data3', data3)
+                    cache.set(room_name, data3)
                 elif room_name == '星露直播间':
                     rooms = Room.objects.filter(date_time=date_str, room_name='星露直播间')
                     if not rooms.exists():
@@ -242,7 +244,7 @@ class RoomView(APIView):
                     data1 = getGoods("127.0.0.1:9533", room_id, getUrl)
                     data2 = getGoodsSencode("127.0.0.1:9533", room_id)
                     data3 = getLive("127.0.0.1:9533", room_id)
-                    cache.set('data3', data3)
+                    cache.set(room_name, data3)
                 success = True
             except Exception as e:
                 print(e)
@@ -251,11 +253,12 @@ class RoomView(APIView):
             Room.objects.filter(date_time=date_str, room_name=room_name).delete()
         except Exception as e:
             print(e)
+            return Response({'status': 'error', 'message': str(e)}, status=500)
         for item in data1:
             if item[2] == data2[0][0]:
                 self.code = []
                 self.code.append([data2[0][0], item[0], item[1]])
-                cache.set('code', self.code)
+                cache.set(f'{room_name}code', self.code)
                 break
 
         data2_dict = {row[0]: row[1:] for row in data2}
@@ -359,6 +362,13 @@ class ProductInfoView(APIView):
         date_time = datetime.now().strftime("%Y-%m-%d")
         # 场次
         session = "第一场"
+
+        # 结束时间
+        s1 = datetime.now()
+        s2 = timedelta(seconds=time)
+        start_time = s1 - s2
+        start_time = start_time.strftime("%Y-%m-%d %H:%M:%S")
+        end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         try:
             productInfo = ProductInformation(
                 code=code,
@@ -374,6 +384,8 @@ class ProductInfoView(APIView):
                 in_live_rate=in_live_rate,
                 pay_combo_cnt=pay_combo_cnt,
                 session=session,
+                start_time=start_time,
+                end_time=end_time,
             )
             productInfo.save()
             return Response({'status': 'success'}, status=200)
@@ -396,3 +408,103 @@ class ProductInfoView(APIView):
         queryset = ProductInformation.objects.filter(date=date_time, session=session, room_name=room_name)
         serializer = ProductInfoSerializer(queryset, many=True)
         return Response(serializer.data)
+
+
+class LiveRoomDataView(APIView):
+    def post(self, request):
+        # 总曝光
+        total_exposure = request.data.get("room_live_exposure_sum")
+        # 进入直播间-广告
+        enter_room_ad = request.data.get("enter_room_ad")
+        # 点击商品-广告
+        click_product_ad = request.data.get("click_product_ad")
+        # 创建订单-广告
+        create_order_ad = request.data.get("create_order_ad")
+        # 成交订单-广告
+        deal_order_ad = request.data.get("deal_order_ad")
+        # 进入直播间-自然
+        enter_room_organic = request.data.get("enter_room_organic")
+        # 点击商品-自然
+        click_product_organic = request.data.get("click_product_organic")
+        # 创建订单-自然
+        create_order_organic = request.data.get("create_order_organic")
+        # 成交订单-自然
+        deal_order_organic = request.data.get("deal_order_organic")
+        # 商品序号
+        product_sequence = request.data.get("product_sequence")
+        # 商品款号
+        product_code = request.data.get("product_code")
+
+        # 商品曝光人数
+        product_exposure_users = request.data.get("product_exposure_users")
+        # 商品点击人数
+        product_click_users = request.data.get("product_click_users")
+        # 累计成交金额
+        cumulative_deal_amount = request.data.get("cumulative_deal_amount")
+        # 累计成交订单数
+        cumulative_deal_orders = request.data.get("cumulative_deal_orders")
+        # 千川数据
+        room_list = request.data.get("room_list")
+        # 直播间名称
+        room_name = request.data.get("room_name")
+
+        matching_rooms = [room for room in room_list if room['product_id'] == int(product_sequence)][0]
+        # 商品千次曝光成交
+        product_ctr = matching_rooms["GPM"]
+        # 广告结算订单数
+        ad_settlement_orders = matching_rooms["order_number"]
+        # 广告结算成本
+        ad_settlement_cost = matching_rooms["order_rate"]
+        # 点击成交转化率
+        click_deal_conversion_rate = matching_rooms["clickDeal2"]
+
+        # 广告成交订单数
+        if float(matching_rooms["back_rate"]) != 0:
+            ad_deal_orders = int(int(matching_rooms["order_number"]) / float(matching_rooms["back_rate"]))
+        else:
+            ad_deal_orders = int(matching_rooms["order_number"])
+
+        # 销售金额
+        salesPrice = matching_rooms["salesPrice"]
+        # 销售件数
+        salesNum = matching_rooms["salesNum"]
+        # 单价
+        if salesPrice != 0:
+            price = salesPrice / salesNum
+            # 广告GMV
+            ad_gmv = ad_deal_orders * price
+        else:
+            ad_gmv = 0
+        # 消耗
+        expenditure = matching_rooms["GPM"]
+        try:
+            liveRoomData = LiveRoomData(
+                total_exposure=total_exposure,
+                enter_room_ad=enter_room_ad,
+                click_product_ad=click_product_ad,
+                create_order_ad=create_order_ad,
+                deal_order_ad=deal_order_ad,
+                enter_room_organic=enter_room_organic,
+                click_product_organic=click_product_organic,
+                create_order_organic=create_order_organic,
+                deal_order_organic=deal_order_organic,
+                product_sequence=product_sequence,
+                product_code=product_code,
+                ad_gmv=ad_gmv,
+                expenditure=expenditure,
+                product_ctr=product_ctr,
+                ad_settlement_orders=ad_settlement_orders,
+                ad_deal_orders=ad_deal_orders,
+                ad_settlement_cost=ad_settlement_cost,
+                click_deal_conversion_rate=click_deal_conversion_rate,
+                product_exposure_users=product_exposure_users,
+                product_click_users=product_click_users,
+                cumulative_deal_amount=cumulative_deal_amount,
+                cumulative_deal_orders=cumulative_deal_orders,
+                room_name=room_name
+            )
+            liveRoomData.save()
+            return JsonResponse({'status': 'success'}, status=200)
+        except Exception as e:
+            error_message = traceback.format_exc()  # 获取异常信息的字符串形式
+            return JsonResponse({'err': str(e)}, status=500)

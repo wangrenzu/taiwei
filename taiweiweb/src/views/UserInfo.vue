@@ -11,7 +11,8 @@
         <el-table-column fixed="right" label="图片" width="120">
           <template #default="scope">
             <el-image style="width: 90px; height: 100px"
-                      :src="scope.row.commodity_image" fit="cover"/>
+                    :src="'http://192.168.1.233/web_images/' + scope.row.merchant_code + '.jpg'" fit="cover">
+          </el-image>
           </template>
         </el-table-column>
         <el-table-column prop="product_name" label="尺码" width="80" show-overflow-tooltip/>
@@ -28,7 +29,8 @@
         <el-table-column fixed="right" label="图片" width="120">
           <template #default="scope">
             <el-image style="width: 90px; height: 100px"
-                      :src="scope.row.commodity_image" fit="cover"/>
+                    :src="'http://192.168.1.233/web_images/' + scope.row.merchant_code + '.jpg'" fit="cover">
+          </el-image>
           </template>
         </el-table-column>
         <el-table-column prop="product_name" label="尺码" width="80" show-overflow-tooltip/>

@@ -10,7 +10,8 @@
     <el-table-column label="图片" width="120">
       <template #default="scope">
         <el-image style="width: 90px; height: 100px"
-                  :src="scope.row.image"/>
+                    :src="'http://192.168.1.233/web_images/' + scope.row.code + '.jpg'">
+          </el-image>
       </template>
     </el-table-column>
     <el-table-column prop="order_quantity" label="订购量" width="80" sortable show-overflow-tooltip/>

@@ -114,7 +114,36 @@ const room = reactive({
                 room_live_code: this.room_live_code,
             }
         })
-    }
+    },
+    // /**
+    //  * 每5秒直播间数据
+    //  * @param room_name
+    //  * @returns {Promise<axios.AxiosResponse<any>>}
+    //  */
+    LiveRoomData(room_live_exposure_sum, enter_room_ad, click_product_ad, create_order_ad,
+                 deal_order_ad, enter_room_organic, click_product_organic, create_order_organic,
+                 deal_order_organic, product_sequence, product_code, product_exposure_users, product_click_users,
+                 cumulative_deal_amount, cumulative_deal_orders, room_list, room_name) {
+        return http.post('/room/LiveRoomData/', {
+            room_live_exposure_sum: room_live_exposure_sum,
+            enter_room_ad: enter_room_ad,
+            click_product_ad: click_product_ad,
+            create_order_ad: create_order_ad,
+            deal_order_ad: deal_order_ad,
+            enter_room_organic: enter_room_organic,
+            click_product_organic: click_product_organic,
+            create_order_organic: create_order_organic,
+            deal_order_organic: deal_order_organic,
+            product_sequence: product_sequence,
+            product_code: product_code,
+            product_exposure_users: product_exposure_users,
+            product_click_users: product_click_users,
+            cumulative_deal_amount: cumulative_deal_amount,
+            cumulative_deal_orders: cumulative_deal_orders,
+            room_list: room_list,
+            room_name: room_name,
+        })
+    },
 })
 
 export default room;

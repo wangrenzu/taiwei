@@ -50,6 +50,7 @@ class Goods(models.Model):
     merchant_english = models.CharField(max_length=200, verbose_name='英文名', null=True)
     category = models.CharField(max_length=10, verbose_name='品类', null=True)
     season = models.CharField(max_length=10, verbose_name='季节', null=True)
+    code_describe = models.CharField(max_length=255, verbose_name='描述', null=True)
 
     class Meta:
         verbose_name = '货品信息'
@@ -366,6 +367,8 @@ class NewStyleStatusTracking(models.Model):
     yifa_stock = models.IntegerField(verbose_name='意法库存', null=True)
     moya_stock = models.IntegerField(verbose_name='茉雅库存', null=True)
     notes = models.CharField(verbose_name="备注", null=True, max_length=255)
+    count = models.IntegerField(verbose_name="计数", default=1)
+    auto_time = models.DateField(verbose_name="自动生成的日期", auto_now=True)
 
     class Meta:
         verbose_name = '新款状态跟踪'

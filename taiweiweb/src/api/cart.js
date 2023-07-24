@@ -61,7 +61,13 @@ const cart = reactive({
      */
     getCartLink() {
         return http.get(`cart/getCartLink?codes=${this.codes}`);
-    }
+    },
+    addDesign(code_list, cart_name) {
+        return http.post('script/', {
+            code_list: code_list,
+            cart_name: cart_name,
+        })
+    },
 })
 
 

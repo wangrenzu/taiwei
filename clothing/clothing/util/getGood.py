@@ -117,6 +117,15 @@ def getGoodsSencode(ip, room_id):
         result.append(row_data)
     response_data = json.loads(response_content).get('data').get('topProduct')
     row_data = append_data(response_data)
+    response = requests.get(
+        'https://buyin.jinritemai.com/api/author/livepc/prompt_board?in_explain_ab=false&verifyFp=f1c2d06833b03da1856ab5dd15e328e02559d4954d87ee04ae&fp=f1c2d06833b03da1856ab5dd15e328e02559d4954d87ee04ae&msToken=gSJe8_OQFytqeGsPaZPUOgLZHQVqcizTFMiF0lBzpGKRaztWG9lcZiZojPl9FZWHCS-aLSxpsuWeI39-MJ27YYxpyCUL5ekt55CX_g32eqA7TnEKT33prn0%3D&a_bogus=YjBEgOZYMsm1kD3bi7kz9JXmQGy0YW-3gZEqKPcmT0wD',
+        cookies=cookies, headers={
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36'})
+    # 解码为UTF-8字符串
+    response_content = response.content.decode('utf-8')
+    # 解析为字典
+    response_data = json.loads(response_content).get('data').get("title")[-5:]
+    row_data[0] = response_data
     result.insert(0, row_data)
     return result
 
@@ -269,6 +278,24 @@ def getLive(ip, room_id):
         in_room_live1 = response_data.get('adFlowDistribution').get('convertDistribution1').get("value")
         in_room_live2 = response_data.get('natureFlowDistribution').get('convertDistribution1').get("value")
         result['in_room_live'] = in_room_live1 + in_room_live2
+        result['in_room_live1'] = in_room_live1
+        result['in_room_live2'] = in_room_live2
+        # 商品点击
+        click_product_ad1 = response_data.get('adFlowDistribution').get('convertDistribution2').get("value")
+        click_product_ad2 = response_data.get('natureFlowDistribution').get('convertDistribution2').get("value")
+        result['click_product_ad1'] = click_product_ad1
+        result['click_product_ad2'] = click_product_ad2
+        # 创建订单
+        create_order_ad1 = response_data.get('adFlowDistribution').get('convertDistribution3').get("value")
+        create_order_ad2 = response_data.get('natureFlowDistribution').get('convertDistribution3').get("value")
+        result['create_order_ad1'] = create_order_ad1
+        result['create_order_ad2'] = create_order_ad2
+        # 成交
+        deal_order_ad1 = response_data.get('adFlowDistribution').get('convertDistribution4').get("value")
+        deal_order_ad2 = response_data.get('natureFlowDistribution').get('convertDistribution4').get("value")
+        result['deal_order_ad1'] = deal_order_ad1
+        result['deal_order_ad2'] = deal_order_ad2
+
         return result
     except Exception as e:
 

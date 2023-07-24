@@ -22,4 +22,5 @@ urlpatterns = [
     path('Integration/', views.IntegrationView.as_view()),
     path('Barrage/', views.Barrage.as_view()),
     path('productInfo/', views.ProductInfoView.as_view()),
+    path("LiveRoomData/", views.LiveRoomDataView.as_view())
 ]

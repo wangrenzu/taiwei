@@ -2,7 +2,6 @@ import json
 
 import pandas as pd
 from django.http import HttpResponse, JsonResponse
-from django.shortcuts import render
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.db import connection
@@ -521,7 +520,10 @@ class CartInfo(APIView):
                         c.commodity_code,
                         c.commodity_image,
                         c.live_deal_conversion_rate,
-                        c.live_click_count / c.live_exposure_count as exposure_click_rate,
+                        c.live_click_count / 
+                         (
+                            CASE WHEN c.live_exposure_count=0 THEN 1 ELSE c.live_exposure_count END
+                            ) as exposure_click_rate,
                         (
                         SELECT 
                         AVG(CASE WHEN oc.live_exposure_count > 1000 THEN oc.live_exposure_count ELSE NULL END) as avg_live_exposure_count
@@ -648,7 +650,6 @@ class find_code_link(APIView):
                         link = {"code": result[0], "link": result[1]}
                         links.append(link)
                 links_json = json.dumps(links)  # 将列表转换为JSON字符串
-                print(links_json)
                 return HttpResponse(links_json, content_type='application/json')
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)

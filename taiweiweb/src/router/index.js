@@ -110,7 +110,24 @@ const routes = [
         name: "testdemo",
         component: () => import("../views/TestDemo.vue")
     },
-
+    {
+        meta: {
+            title: "标签库",
+            keepAlive: true
+        },
+        path: "/tags/",
+        name: "tags",
+        component: () => import("../views/Tags.vue")
+    },
+    {
+        meta: {
+            title: "设计",
+            keepAlive: true
+        },
+        path: "/design/:cart_name",
+        name: "design",
+        component: () => import("../views/Design.vue")
+    },
 ]
 
 // 路由对象实例化

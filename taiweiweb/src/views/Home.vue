@@ -186,7 +186,7 @@
         </el-button>
         <el-button color="#F3A627" type="primary" @click="showCart('S姐购物车')"><p style="color: white">S姐购物车</p>
         </el-button>
-        <el-button color="#F3A627" type="primary" @click="NewStyleTracking"><p style="color: white">新款状态跟踪</p>
+        <el-button color="#F3A627" type="primary" @click="NewStyleTracking"><p style="color: white">池子</p>
         </el-button>
 
       </div>
@@ -199,6 +199,10 @@
         </el-button>
         <el-button color="#F3A627" type="primary" @click="showRoomBackend('S姐直播间')"><p style="color: white">
           S姐直播间后台</p>
+        </el-button>
+
+        <el-button color="#F3A627" type="primary" @click="showTags"><p style="color: white">
+          标签库</p>
         </el-button>
       </div>
     </div>
@@ -246,7 +250,8 @@
       <el-table-column label="图片" width="90" show-overflow-tooltip>
         <template #default="scope">
           <el-image style="width: 90px; height: 100px"
-                    :src="scope.row.commodity_image"/>
+                    :src="'http://192.168.1.233/web_images/' + scope.row.m + '.jpg'">
+          </el-image>
         </template>
       </el-table-column>
       <el-table-column prop="sum_total_amount_3" label="支付跑单金额" width="140" show-overflow-tooltip/>
@@ -645,7 +650,8 @@
       <el-table-column label="图片" width="100">
         <template #default="scope">
           <el-image style="width: 90px; height: 100px"
-                    :src="scope.row.commodity_image"/>
+                    :src="'http://192.168.1.233/web_images/' + scope.row.code + '.jpg'">
+          </el-image>
         </template>
       </el-table-column>
       <el-table-column prop="inventory" label="库存" width="120" show-overflow-tooltip/>
@@ -777,7 +783,8 @@
       <el-table-column label="图片" width="120" show-overflow-tooltip>
         <template #default="scope">
           <el-image style="width: 90px; height: 100px"
-                    :src="scope.row.commodity_image"/>
+                    :src="'http://192.168.1.233/web_images/' + scope.row.code + '.jpg'">
+          </el-image>
         </template>
       </el-table-column>
       <el-table-column prop="inventory" label="库存" width="60" show-overflow-tooltip/>
@@ -849,7 +856,8 @@
       <el-table-column label="图片" width="100">
         <template #default="scope">
           <el-image style="width: 90px; height: 100px"
-                    :src="scope.row.commodity_image"/>
+                    :src="'http://192.168.1.233/web_images/' + scope.row.code + '.jpg'">
+          </el-image>
         </template>
       </el-table-column>
       <el-table-column prop="inventory" label="库存" width="120" show-overflow-tooltip/>
@@ -1082,6 +1090,9 @@ const addVipUser = (name) => {
   })
 }
 
+const showTags = () => {
+  window.open("/tags/", '_blank')
+}
 // 显示每日报表
 const showReport = () => {
   home.loading = true
@@ -1273,6 +1284,7 @@ const summary12Fields = [
   {key: 'live_deal_conversion_rate', label: '转换率'},
   {key: 'date_time', label: '日期'},
 ];
+
 
 // 根据用户选择的筛选条件导出本页内容到excel
 const exportPageUserExcel = () => {

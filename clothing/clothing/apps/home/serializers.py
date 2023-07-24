@@ -2,7 +2,7 @@ from datetime import datetime
 
 from rest_framework import serializers
 from .models import Order, User, Report, StockIn, OrderTracking, Stock, UpdateStatus, VipUser, StyleStatus, \
-    NewStyleStatusTracking
+    NewStyleStatusTracking, Goods
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -432,3 +432,21 @@ class NewStyleStatusTrackingSerializer(serializers.ModelSerializer):
     class Meta:
         model = NewStyleStatusTracking
         fields = '__all__'
+
+
+class GoodsSerializer(serializers.ModelSerializer):
+    code = serializers.CharField()
+    inventory = serializers.IntegerField()
+
+    class Meta:
+        model = Goods
+        fields = ("code", "category", "inventory")
+
+
+class StyleStatusNumSerializer(serializers.ModelSerializer):
+    category = serializers.CharField()
+    num = serializers.IntegerField()
+
+    class Meta:
+        model = NewStyleStatusTracking
+        fields = ("label", "category", "total_quantity", "num")

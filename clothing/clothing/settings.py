@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'home',
     'cart',
     'room',
+    'Script',
     'channels',
     'channels_redis',
 ]
@@ -208,7 +209,7 @@ LOGGING = {
         #     'filters': ['special']             # 当前日志处理流程的日志过滤
         # }
         'file': {
-            'level': 'INFO',
+            'level': 'ERROR',
             'class': 'logging.handlers.RotatingFileHandler',
             # 日志位置,日志文件名，日志保存目录logs必须手动创建
             'filename': BASE_DIR / "../logs/taiwei.log",

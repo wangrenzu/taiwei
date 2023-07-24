@@ -295,7 +295,7 @@
   >
     <el-table-column type="expand">
       <template #default="props">
-        <el-table :data="getProductCode(props.row.code)" fit style="width: 60%;">
+        <el-table :data="getProductCode(props.row.code)" fit style="width: 70%;">
           <el-table-column prop="exposure_count" label="曝光" show-overflow-tooltip></el-table-column>
           <el-table-column prop="click_count" label="点击" show-overflow-tooltip></el-table-column>
           <el-table-column prop="click_rate" label="点击率" show-overflow-tooltip></el-table-column>
@@ -305,6 +305,16 @@
           <el-table-column prop="in_live_rate" label="进入率" show-overflow-tooltip></el-table-column>
           <el-table-column prop="pay_combo_cnt" label="销量" show-overflow-tooltip></el-table-column>
           <el-table-column prop="live_time" label="讲解时间" show-overflow-tooltip></el-table-column>
+          <el-table-column prop="start_time" label="开始时间" width="200" show-overflow-tooltip>
+            <template #default="scope">
+              {{ formatMyDate(scope.row.start_time) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="end_time" label="结束时间" width="200" show-overflow-tooltip>
+            <template #default="scope">
+              {{ formatMyDate(scope.row.end_time) }}
+            </template>
+          </el-table-column>
         </el-table>
       </template>
     </el-table-column>
@@ -492,6 +502,7 @@ import {watch, ref, reactive} from "vue";
 import {ElMessage} from "element-plus";
 import cart from "../api/cart.js";
 import home from "../api/home.js";
+import {format} from 'date-fns'
 
 //备注
 let notes = ref('无')
@@ -656,6 +667,30 @@ let add_in_room_live = ref(0)
 let DZ = ref(0)
 // 本次讲解增加的曝光量
 let C = ref(0)
+//总曝光次
+const room_live_exposure_sum = ref(0)
+// 进入直播间-广告
+const enter_room_ad = ref(0)
+// 点击商品-广告
+const click_product_ad = ref(0)
+// 创建订单-广告
+const create_order_ad = ref(0)
+// 成交订单-广告
+const deal_order_ad = ref(0)
+// 进入直播间-自然
+const enter_room_organic = ref(0)
+// 点击商品-自然
+const click_product_organic = ref(0)
+// 创建订单-自然
+const create_order_organic = ref(0)
+// 成交订单-自然
+const deal_order_organic = ref(0)
+//商品曝光人数
+const product_exposure_users = ref(0)
+//商品点击人数
+const product_click_users = ref(0)
+//金额
+const cumulative_deal_amount = ref(0)
 const getRoomBack = () => {
   // 直播间名称
   const room_name = route.params.room_name
@@ -688,6 +723,20 @@ const getRoomBack = () => {
 
       room.live_data = response.data.data3
 
+      // 总曝光次
+      room_live_exposure_sum.value = room.live_data.room_live_exposure_sum
+      enter_room_ad.value = room.live_data.in_room_live1
+      click_product_ad.value = room.live_data.click_product_ad1
+      create_order_ad.value = room.live_data.create_order_ad1
+      deal_order_ad.value = room.live_data.deal_order_ad1
+      enter_room_organic.value = room.live_data.in_room_live2
+      click_product_organic.value = room.live_data.click_product_ad2
+      create_order_organic.value = room.live_data.create_order_ad2
+      deal_order_organic.value = room.live_data.deal_order_ad2
+      product_exposure_users.value = room.live_data.product_show_ucnt
+      product_click_users.value = room.live_data.product_click_ucnt
+      cumulative_deal_amount.value = room.live_data.market_price
+      LiveRoomData()
       if (!room.add_dict.hasOwnProperty(response.data.data4)) {
         room.add_dict[response.data.data4] = {
           'product_show_ucnt': room.live_data.product_show_ucnt,
@@ -761,9 +810,9 @@ const editOrderPrice = (code, price) => {
   room.show_input1 = false
   room.editOrderPrice(code, price).then(response => {
     ElMessage({
-    message: "更改成功",
-    type: 'success',
-  })
+      message: "更改成功",
+      type: 'success',
+    })
   }).catch(err => {
     ElMessage.error("修改失败")
   })
@@ -852,6 +901,27 @@ socket2.onmessage = function (event) {
 const getProductInfo = () => {
   room.getProductInfo(route.params.room_name).then(response => {
     room.product_info = response.data
+  }).catch(err => {
+    console.log(err)
+  })
+}
+
+
+const formatMyDate = (dateString) => {
+  if (!dateString) return '日期未定义';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '无效的日期';
+  return format(date, 'yyyy-MM-dd HH:mm:ss');
+}
+
+
+const LiveRoomData = () => {
+  room.LiveRoomData(room_live_exposure_sum.value, enter_room_ad.value, click_product_ad.value, create_order_ad.value,
+      deal_order_ad.value, enter_room_organic.value, click_product_organic.value, create_order_organic.value,
+      deal_order_organic.value, room.integration[0].product_id, room.room_live_code,product_exposure_users.value,
+      product_click_users.value,cumulative_deal_amount.value,room.live_data.pay_combo_cnt,room.room_list,route.params.room_name
+  ).then(response => {
+    console.log(response)
   }).catch(err => {
     console.log(err)
   })

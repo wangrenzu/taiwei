@@ -44,4 +44,8 @@ urlpatterns = [
     path('StyleStatusView/', views.StyleStatusView.as_view()),
     path('NewStyleStatusTracking/', views.NewStyleStatusTrackingView.as_view()),
     path('move/', views.move_new_style_status_tracking),
+    path('computeTime/', views.compute_time),
+    re_path(r'^getCategory/(?P<season>.*)/$', views.get_category),
+    path("getgoodsinfo/", views.getGoodsInfo.as_view()),
+
 ]

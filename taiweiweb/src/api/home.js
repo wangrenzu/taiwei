@@ -310,19 +310,29 @@ const home = reactive({
      * 移动新款状态跟踪
      * @returns {Promise<axios.AxiosResponse<any>>}
      */
-    updateNewStyleStatusTrackingView(id, label,expected_date) {
+    updateNewStyleStatusTrackingView(id, start_label, expected_date, code, end_label, order_date) {
         return http.patch("/home/NewStyleStatusTracking/", {
             id: id,
-            label: label,
+            start_label: start_label,
             expected_date: expected_date,
+            code: code,
+            end_label: end_label,
+            order_date: order_date,
         })
     },
     /**
      * 执行存储过程移动池子
      * @returns {Promise<axios.AxiosResponse<any>>}
      */
-    move(){
+    move() {
         return http.get("home/move/")
+    },
+    /**
+     * 执行mysql函数计算时间
+     * @returns {Promise<axios.AxiosResponse<any>>}
+     */
+    compute_time(){
+        return http.get("home/computeTime/")
     }
 })
 

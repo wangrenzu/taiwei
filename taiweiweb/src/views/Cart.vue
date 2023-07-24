@@ -5,11 +5,12 @@
             placeholder="请输入款号" clearable></el-input>
   <el-button type="primary" @click="addCart">加入购物车</el-button>
   <el-button type="primary" @click="getCartLink">导出链接
+
     <el-icon class="el-icon--right">
       <Download/>
     </el-icon>
   </el-button>
-
+  <el-button type="primary" @click="addDesignCode">设计</el-button>
   <el-button type="primary" @click="cart.update_code=true">上传导出
     <el-icon class="el-icon--right">
       <Download/>
@@ -19,6 +20,7 @@
   <el-dialog :width="600" v-model="cart.update_code">
     <UpdateCodeLink></UpdateCodeLink>
   </el-dialog>
+
 
   <br>
   <el-button type="primary" @click="exportExcel(cartData,cart.cart_list)">导出
@@ -36,7 +38,8 @@
     <el-table-column label="图片" width="100">
       <template #default="scope">
         <el-image style="width: 90px; height: 100px"
-                  :src="scope.row.image"/>
+                  :src="'http://192.168.1.233/web_images/' + scope.row.commodity_code + '.jpg'">
+        </el-image>
       </template>
     </el-table-column>
     <el-table-column prop="order_quantity" label="订购量" width="50" show-overflow-tooltip/>
@@ -155,7 +158,6 @@ const exportExcel = (exportFields, data_list) => {
   const wbout = XLSX.write(workbook, {bookType: 'xlsx', type: 'array'});
   const blob = new Blob([wbout], {type: 'application/octet-stream'});
   FileSaver.saveAs(blob, filename);
-
 }
 
 // 获取购物车信息
@@ -166,6 +168,7 @@ const getCart = () => {
   }).catch(err => {
     console.log(err)
   })
+
 }
 getCart()
 
@@ -209,9 +212,9 @@ const addCart = () => {
   }
   cart.addCart(cart.cart_code, route.params.cart_name, route.params.cart_name).then(response => {
     ElMessage({
-    message: "添加成功",
-    type: 'success',
-  })
+      message: "添加成功",
+      type: 'success',
+    })
     getCart()
   }).catch(err => {
     ElMessage.error("添加失败")
@@ -233,6 +236,19 @@ const getCartLink = () => {
   })
 }
 
+const addDesignCode = () => {
+  cart.codes = []
+  const cart_name = route.params.cart_name
+  cart.cart_list.forEach(item => {
+    cart.codes.push(item.commodity_code)
+  })
+  cart.addDesign(cart.codes, cart_name).then(response => {
+    window.open("/design/" + cart_name)
+
+  }).catch(err => {
+    ElMessage.error("错误")
+  })
+}
 
 </script>
 

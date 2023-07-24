@@ -1,23 +1,10 @@
 <template>
-
-
-
-    <div class="box">
-        <div class="side front"></div>
-        <div class="side back"></div>
-        <div class="side left"></div>
-        <div class="side right"></div>
-        <div class="side top">
-            <div class="tl"></div>
-            <div class="tr"></div>
-        </div>
-        <div class="side bottom"></div>
-        <div class="text">求三连~</div>
-    </div>
-
-
-
-
+<div class="parent">
+  <div class="child">盒子 1</div>
+  <div class="child">盒子 2</div>
+  <div class="child">盒子 3</div>
+  <!-- 添加更多子盒子... -->
+</div>
 
 </template>
 
@@ -25,106 +12,17 @@
 
 </script>
 <style>
-*{
-    /* 初始化 */
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+.parent {
+  width: 300px; /* 父盒子的宽度 */
+  overflow-x: auto; /* 水平滚动条 */
+  white-space: nowrap; /* 子盒子不换行 */
 }
-body{
-    /* 100%窗口高度 */
-    height: 100vh;
-    /* 弹性布局 水平+垂直居中 */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: #e0c9a5;
-}
-.box{
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    /* 相对定位 */
-    position: relative;
-    /* 开启3D效果 */
-    transform-style: preserve-3d;
-    /* 设置视距 */
-    perspective: 1000px;
-    /* 默认沿X轴旋转-20度 */
-    transform: rotateX(-20deg);
-}
-/* 箱子各个面的统一样式 */
-.side{
-    /* 绝对定位 */
-    position: absolute;
-    width: 200px;
-    height: 200px;
-    background-color: #c09551;
-    border: 1px solid #e4c084;
-}
-/* 前 */
-.front{
-    transform: translateZ(100px);
-}
-/* 后 */
-.back{
-    transform: translateZ(-100px) rotateY(180deg);
-}
-/* 左 */
-.left{
-    transform: translateX(-100px) rotateY(-90deg);
-}
-/* 右 */
-.right{
-    transform: translateX(100px) rotateY(90deg);
-}
-/* 上 */
-.top{
-    transform: translateY(-100px) rotateX(90deg);
-    background-color: transparent;
-    transform-style: preserve-3d;
-}
-.top div{
-    background-color: #c09551;
-    position: absolute;
-    top: 0;
-    width: 50%;
-    height: 100%;
-    border: 1px solid #e4c084;
-    /* 设置过渡 */
-    transition: 0.5s;
-}
-.top .tl{
-    left: 0;
-    /* 设置旋转的基点位置为左边 */
-    transform-origin: left;
-}
-.top .tr{
-    right: 0;
-    /* 设置旋转的基点位置为右边 */
-    transform-origin: right;
-}
-/* 下 */
-.bottom{
-    transform: translateY(100px) rotateX(-90deg);
-    /* 阴影 */
-    box-shadow: 5px -5px 15px rgba(0,0,0,0.4);
-}
-.box:hover .top .tl{
-    transform: rotateY(-135deg);
-}
-.box:hover .top .tr{
-    transform: rotateY(135deg);
-}
-.box .text{
-    width: 200px;
-    text-align: center;
-    font-size: 30px;
-    font-weight: bold;
-    transition: 0.6s;
-}
-.box:hover .text{
-    transform: translateY(-250px);
+
+.child {
+  display: inline-block; /* 子盒子水平排列 */
+  width: 100px; /* 子盒子的宽度 */
+  height: 100px; /* 子盒子的高度 */
+  margin-right: 10px; /* 子盒子之间的间距 */
 }
 
 </style>
