@@ -437,16 +437,19 @@ class NewStyleStatusTrackingSerializer(serializers.ModelSerializer):
 class GoodsSerializer(serializers.ModelSerializer):
     code = serializers.CharField()
     inventory = serializers.IntegerField()
+    checked = serializers.BooleanField(default=False)
 
     class Meta:
         model = Goods
-        fields = ("code", "category", "inventory")
+        fields = ("code", "category", "inventory", 'checked')
 
 
 class StyleStatusNumSerializer(serializers.ModelSerializer):
     category = serializers.CharField()
     num = serializers.IntegerField()
+    label2 = serializers.CharField()
 
     class Meta:
         model = NewStyleStatusTracking
-        fields = ("label", "category", "total_quantity", "num")
+        fields = ("label", "category", "total_quantity", "num", "label2")
+

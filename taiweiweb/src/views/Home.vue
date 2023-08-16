@@ -204,6 +204,11 @@
         <el-button color="#F3A627" type="primary" @click="showTags"><p style="color: white">
           标签库</p>
         </el-button>
+
+        <el-button color="#F3A627" type="primary" @click="showDesign"><p style="color: white">
+          设计</p>
+        </el-button>
+
       </div>
     </div>
 
@@ -814,7 +819,7 @@
               link
               type="primary"
               size="small"
-              @click.prevent="addCart(scope.row.merchant_code,'S姐购物车','F')"
+              @click.prevent="addCart(scope.row.code,'S姐购物车','F')"
           >
             加入购物车
           </el-button>
@@ -826,7 +831,7 @@
               link
               type="primary"
               size="small"
-              @click.prevent="addCart(scope.row.merchant_code,'悦仓购物车','F')"
+              @click.prevent="addCart(scope.row.code,'悦仓购物车','F')"
           >
             加入购物车
           </el-button>
@@ -838,7 +843,7 @@
               link
               type="primary"
               size="small"
-              @click.prevent="addCart(scope.row.merchant_code,'星露购物车','F')"
+              @click.prevent="addCart(scope.row.code,'星露购物车','F')"
           >
             加入购物车
           </el-button>
@@ -996,6 +1001,14 @@ const show_tables = () => {
 
 
 show_tables()
+
+const showDesign = () => {
+  home.addDesign2().then(response => {
+    window.open("/design2/")
+  }).catch(err => {
+    ElMessage.error("错误")
+  })
+}
 
 
 const addCart = (code, name, source) => {

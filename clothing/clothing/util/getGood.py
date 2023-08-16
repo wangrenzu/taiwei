@@ -44,7 +44,6 @@ def getGoods(ip, room_id, getUrl):
     # 解码为UTF-8字符串
     try:
         response_content = response.content.decode('utf-8')
-
         # 解析为字典
         response_data = json.loads(response_content).get("data").get("data_result")
     except Exception as e:
@@ -118,14 +117,17 @@ def getGoodsSencode(ip, room_id):
     response_data = json.loads(response_content).get('data').get('topProduct')
     row_data = append_data(response_data)
     response = requests.get(
-        'https://buyin.jinritemai.com/api/author/livepc/prompt_board?in_explain_ab=false&verifyFp=f1c2d06833b03da1856ab5dd15e328e02559d4954d87ee04ae&fp=f1c2d06833b03da1856ab5dd15e328e02559d4954d87ee04ae&msToken=gSJe8_OQFytqeGsPaZPUOgLZHQVqcizTFMiF0lBzpGKRaztWG9lcZiZojPl9FZWHCS-aLSxpsuWeI39-MJ27YYxpyCUL5ekt55CX_g32eqA7TnEKT33prn0%3D&a_bogus=YjBEgOZYMsm1kD3bi7kz9JXmQGy0YW-3gZEqKPcmT0wD',
+        'https://buyin.jinritemai.com/api/author/livepc/prompt_board?in_explain_ab=true&verifyFp=f1acf483b9fdfb40be34aaa2882c9b02638bb38e695493a913&fp=f1acf483b9fdfb40be34aaa2882c9b02638bb38e695493a913&msToken=YzKoIBKL7r5kbifuo6EgEwvgQ8Sa2i1gBay7Hv_kwhoDQ2eCSDplPBm7_0ZOXdzrxRmQdGHhda5pOUfKV7VpszgYL_EdCeHdQ3CfZvw_lBcutcOxgWAZfKA%3D&a_bogus=Q7-Q6OgiMsm1UDvo07kz9GhmSlW0YWRMgZENWjaxltqr',
         cookies=cookies, headers={
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36'})
     # 解码为UTF-8字符串
     response_content = response.content.decode('utf-8')
+
     # 解析为字典
     response_data = json.loads(response_content).get('data').get("title")[-5:]
+
     row_data[0] = response_data
+
     result.insert(0, row_data)
     return result
 
@@ -177,7 +179,6 @@ def getLive(ip, room_id):
         response_content = response.content.decode('utf-8')
         # 解析为字典
         response_data = json.loads(response_content).get('data')
-
         # 直播间成交金额
         price = response_data.get('gmv') / 100
 
@@ -360,6 +361,7 @@ def fetch_barrage(self, ip, room_id, room_name):
                 'type': 'send_comment',
                 'content': content,
             })
+
         except Exception as e:
             time.sleep(5)
             driver.get(url)
@@ -370,7 +372,32 @@ def fetch_barrage(self, ip, room_id, room_name):
             raise self.retry(exc=e, countdown=5)
 
 
+def get_douyin_user():
+    options = Options()
+    options.add_experimental_option("debuggerAddress", "127.0.0.1:9534")
+    chrome_driver_path = "D:/chromedriver.exe"  # 替换为实际的驱动程序路径
+    driver = webdriver.Chrome(executable_path=chrome_driver_path, options=options)
+    response_data = ''
+    try:
+        driver.implicitly_wait(5)
+        # 获取Selenium的Cookie
+        selenium_cookies = driver.get_cookies()
+        cookies = {cookie['name']: cookie['value'] for cookie in selenium_cookies}
+        net_url = get_net_url(driver, 'https://live.douyin.com/webcast/ranklist/audience/?aid=')
+        response = requests.get(
+            net_url[-1],
+            cookies=cookies, headers={
+                'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36'})
+        response_content = response.content.decode('utf-8')
+        # 解析为字典
+        response_data = json.loads(response_content).get('data')
+    except Exception as e:
+        driver.refresh()
+    return response_data
+
+
 if __name__ == '__main__':
     # getGoods("127.0.0.1:9531", '7245051119288748856', False)  # S姐直播间
     # getLive("127.0.0.1:9532", '7246532033483180837')  # 悦仓直播间
-    fetch_barrage("127.0.0.1:9531", '7249134356038437687')
+    # fetch_barrage("127.0.0.1:9531", '7249134356038437687')
+    response = get_douyin_user()

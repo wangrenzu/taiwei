@@ -285,10 +285,21 @@
     <div v-else>
       <el-tag>未抓取数据请输入room_id</el-tag>
     </div>
+
   </div>
-  <el-card class="box-card" style="max-height: 40px; overflow: auto;">
+  <span style="width: auto">
+    <el-card class="box-card" style="max-height: 40px; overflow: auto;">
     <div class="text item">{{ room.message[room.message.length - 1] }}</div>
   </el-card>
+  <el-button type="primary" @click="exportRoom()">导出</el-button>
+  </span>
+
+  <div style="display: flex; justify-content: space-between;">
+    <div v-if="list2.length!==0" ref="chartDom2" style="width: 600px; height: 400px;"></div>
+    <div v-if="list3.length!==0" ref="chartDom3" style="width: 600px; height: 400px;"></div>
+    <div v-if="list4.length!==0" ref="chartDom4" style="width: 600px; height: 400px;"></div>
+  </div>
+
   <el-table
       :data="room.room_list"
       style="width: 100%" border fit height="800"
@@ -498,11 +509,40 @@
 import {useRoute} from 'vue-router';
 import {computed} from 'vue';
 import room from "../api/room.js";
-import {watch, ref, reactive} from "vue";
+import FileSaver from 'file-saver';
+import {watch, ref} from "vue";
 import {ElMessage} from "element-plus";
 import cart from "../api/cart.js";
 import home from "../api/home.js";
 import {format} from 'date-fns'
+import * as XLSX from "xlsx";
+import * as echarts from 'echarts/core';
+import {
+  TitleComponent,
+  TooltipComponent,
+  GridComponent,
+  LegendComponent
+} from 'echarts/components';
+import {LineChart, ScatterChart} from 'echarts/charts';
+import {CanvasRenderer} from 'echarts/renderers';
+
+
+echarts.use([
+  TitleComponent,
+  TooltipComponent,
+  GridComponent,
+  LegendComponent,
+  LineChart,
+  CanvasRenderer,
+  ScatterChart
+]);
+
+const updateCode = (code, img, id, number) => {
+  room.update_code(code, img, id, number).then(response => {
+  }).catch(err => {
+    console.log(err)
+  })
+}
 
 //备注
 let notes = ref('无')
@@ -695,13 +735,16 @@ const getRoomBack = () => {
   // 直播间名称
   const room_name = route.params.room_name
   room.getRoomInfo(room_name).then(response => {
+
     getProductInfo()
     // 商品信息
     room.room_list = response.data.data1
     if (response.data.data2) {
       //规程和库存量
       room.integration = response.data.data2
-      room.salesArray = room.integration[0].specification_sales.split(' ')
+      if (room.integration[0].specification_sales) {
+        room.salesArray = room.integration[0].specification_sales.split(' ')
+      }
     }
     if (response.data.data3) {
       // 本次讲解商品的整合表数据
@@ -737,6 +780,8 @@ const getRoomBack = () => {
       product_click_users.value = room.live_data.product_click_ucnt
       cumulative_deal_amount.value = room.live_data.market_price
       LiveRoomData()
+      updateCode(room.room_live_code, room.integration[0].img, room.integration[0].product_id, room.live_data.pay_combo_cnt)
+
       if (!room.add_dict.hasOwnProperty(response.data.data4)) {
         room.add_dict[response.data.data4] = {
           'product_show_ucnt': room.live_data.product_show_ucnt,
@@ -805,6 +850,7 @@ const getColor = percentage => {
   }
 }
 
+
 // 更改直播价
 const editOrderPrice = (code, price) => {
   room.show_input1 = false
@@ -857,6 +903,53 @@ watch(
       getRoomBack()
     }
 )
+
+const exportFields = [
+  {key: 'datetime', label: '时间点-月日时秒'},
+  {key: 'total_exposure', label: '总曝光'},
+  {key: 'enter_room_ad', label: '进入直播间-广告'},
+  {key: 'click_product_ad', label: '点击商品-广告'},
+  {key: 'create_order_ad', label: '创建订单-广告'},
+  {key: 'deal_order_ad', label: '成交订单-广告'},
+  {key: 'enter_room_organic', label: '进入直播间-自然'},
+  {key: 'click_product_organic', label: '点击商品-自然'},
+  {key: 'create_order_organic', label: '创建订单-自然'},
+  {key: 'deal_order_organic', label: '成交订单-自然'},
+  {key: 'product_sequence', label: '商品序号'},
+  {key: 'product_code', label: '商品款号'},
+  {key: 'ad_gmv', label: '广告GMV'},
+  {key: 'expenditure', label: '消耗'},
+  {key: 'product_ctr', label: '商品千次曝光成交'},
+  {key: 'ad_settlement_orders', label: '广告结算订单数'},
+  {key: 'ad_deal_orders', label: '广告成交订单数'},
+  {key: 'ad_settlement_cost', label: '广告结算成本'},
+  {key: 'click_deal_conversion_rate', label: '点击成交转化率'},
+  {key: 'product_exposure_users', label: '商品曝光人数'},
+  {key: 'product_click_users', label: '商品点击人数'},
+  {key: 'cumulative_deal_amount', label: '累计成交金额'},
+  {key: 'cumulative_deal_orders', label: '累计成交订单数'},
+  {key: 'room_name', label: '直播间名称'},
+]
+
+const exportRoom = () => {
+  room.getLiveRoomData(route.params.room_name).then(response => {
+    const sheet = XLSX.utils.json_to_sheet(response.data.map(item => {
+      const row = {};
+      exportFields.forEach(field => {
+        row[field.label] = item[field.key];
+      });
+      return row;
+    }));
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, sheet, 'Sheet1');
+    const filename = 'table.xlsx';
+    const wbout = XLSX.write(workbook, {bookType: 'xlsx', type: 'array'});
+    const blob = new Blob([wbout], {type: 'application/octet-stream'});
+    FileSaver.saveAs(blob, filename);
+  }).catch(err => {
+    console.log(err)
+  })
+}
 
 // 添加商品到购物车
 const addCart = (code) => {
@@ -918,14 +1011,261 @@ const formatMyDate = (dateString) => {
 const LiveRoomData = () => {
   room.LiveRoomData(room_live_exposure_sum.value, enter_room_ad.value, click_product_ad.value, create_order_ad.value,
       deal_order_ad.value, enter_room_organic.value, click_product_organic.value, create_order_organic.value,
-      deal_order_organic.value, room.integration[0].product_id, room.room_live_code,product_exposure_users.value,
-      product_click_users.value,cumulative_deal_amount.value,room.live_data.pay_combo_cnt,room.room_list,route.params.room_name
+      deal_order_organic.value, room.integration[0].product_id, room.room_live_code, product_exposure_users.value,
+      product_click_users.value, cumulative_deal_amount.value, room.live_data.pay_combo_cnt, room.room_list, route.params.room_name
   ).then(response => {
-    console.log(response)
+    getEcharts2()
+    getEcharts3()
+    getEcharts4()
   }).catch(err => {
     console.log(err)
   })
 }
+
+
+const chartDom2 = ref(null);
+let chartInstance2 = null;
+const list2 = ref([])
+
+
+const getEcharts2 = () => {
+  room.getEcharts2(route.params.room_name).then(response => {
+    list2.value = []
+    response.data.list1.forEach(item => {
+      list2.value.push(
+          {
+            "name": Object.keys(item)[0], // 设置第一条折线图的名称
+            "data": Object.values(item)[0],
+            "type": 'line',
+            "smooth": true,
+            "symbol": 'none',
+            // 给第一条折线图的每个数据点添加数值标签
+            "label": {
+              show: false,
+              position: 'top',
+              color: 'black'
+            }
+          },
+      )
+
+    })
+    chartInstance2 = echarts.init(chartDom2.value);
+    chartInstance2.setOption({
+      title: {
+        text: '进入直播间-自然流速'
+      },
+
+      xAxis: {
+        type: 'category',
+      },
+      yAxis: {
+        type: 'value'
+      },
+      series: list2.value,
+      tooltip: {
+        trigger: 'axis', // 设置 tooltip 的触发方式为 'axis'，即鼠标悬停在折线上时触发
+        axisPointer: {
+          type: 'line' // 设置 axisPointer 的类型为 'line'，即显示垂直于折线的线条
+        }
+      }
+    });
+
+  }).catch(err => {
+    console.log(err)
+  })
+}
+
+
+const chartDom3 = ref(null);
+let chartInstance3 = null;
+const list3 = ref([])
+
+
+const getEcharts3 = () => {
+  room.getEcharts3(route.params.room_name, room.room_live_code).then(response => {
+    list3.value = []
+    response.data.list1.forEach(item => {
+      list3.value.push(
+          {
+            "name": Object.keys(item)[0], // 设置第一条折线图的名称
+            "data": Object.values(item)[0],
+            "type": 'line',
+            "smooth": true,
+            "symbol": 'none',
+            // 给第一条折线图的每个数据点添加数值标签
+            "label": {
+              show: false,
+              position: 'top',
+              color: 'black'
+            }
+          },
+      )
+
+    })
+
+
+    response.data.list2.forEach(item => {
+      list3.value.push(
+          {
+            "name": Object.keys(item)[0],
+            "data": Object.values(item)[0],
+            "type": 'scatter', // Change line to scatter
+            "symbolSize": function (data) {
+              return data > 0 ? 5 : 0; // Show point if value is more than 0
+            },
+            "label": {
+              show: false,
+              position: 'top',
+              color: 'red'
+            },
+            "tooltip": {
+              "show": true
+            },
+            "itemStyle": { // Add this to customize the color
+              "color": 'red' // Replace 'blue' with the desired color
+            }
+          },
+      )
+    })
+
+
+    chartInstance3 = echarts.init(chartDom3.value);
+    chartInstance3.setOption({
+      title: {
+        text: '曝光进入率'
+      },
+
+      xAxis: {
+        type: 'category',
+      },
+      yAxis: {
+        type: 'value'
+      },
+      series: list3.value,
+      tooltip: {
+        trigger: 'axis', // 设置 tooltip 的触发方式为 'axis'，即鼠标悬停在折线上时触发
+        axisPointer: {
+          type: 'line' // 设置 axisPointer 的类型为 'line'，即显示垂直于折线的线条
+        }
+      }
+    });
+
+  }).catch(err => {
+    console.log(err)
+  })
+}
+
+const chartDom4 = ref(null);
+let chartInstance4 = null;
+const list4 = ref([])
+
+const length = ref()
+const getEcharts4 = () => {
+  room.getEcharts4(route.params.room_name, room.room_live_code).then(response => {
+    list4.value = []
+    response.data.list1.forEach(item => {
+      length.value = Object.values(item)[0].length
+      list4.value.push(
+          {
+            "name": Object.keys(item)[0], // 设置第一条折线图的名称
+            "data": Object.values(item)[0],
+            "type": 'line',
+            "smooth": true,
+            "symbol": 'none',
+            // 给第一条折线图的每个数据点添加数值标签
+            "label": {
+              show: false,
+              position: 'top',
+              color: 'black',
+            }
+          },
+      )
+
+    })
+    response.data.list2.forEach(item => {
+      list4.value.push(
+          {
+            "name": Object.keys(item)[0],
+            "data": Object.values(item)[0],
+            "type": 'scatter', // Change line to scatter
+            "symbolSize": function (data) {
+              return data > 0 ? 5 : 0; // Show point if value is more than 0
+            },
+            "label": {
+              show: false,
+              position: 'top',
+              color: 'red'
+            },
+            "tooltip": {
+              "show": true
+            },
+            "itemStyle": { // Add this to customize the color
+              "color": 'red' // Replace 'blue' with the desired color
+            }
+          },
+      )
+    })
+
+
+    list4.value.push({
+          "name": '', // 设置第一条折线图的名称
+          "data": Array.from({length: length.value}, () => 0.25),
+          "type": 'line',
+          "smooth": true,
+          "symbol": 'none',
+          // 给第一条折线图的每个数据点添加数值标签
+          "lineStyle": {
+            "type": "dashed",
+            "color": "grey"
+          },
+          "tooltip": {
+            "show": false
+          }
+        },
+        {
+          "name": '', // 设置第一条折线图的名称
+          "data": Array.from({length: length.value}, () => 0.3),
+          "type": 'line',
+          "smooth": true,
+          "symbol": 'none',
+          // 给第一条折线图的每个数据点添加数值标签
+
+          "lineStyle": {
+            "type": "dashed",
+            "color": "grey"
+          },
+          "tooltip": {
+            "show": false
+          }
+        },
+    )
+
+    chartInstance4 = echarts.init(chartDom4.value);
+    chartInstance4.setOption({
+      title: {
+        text: '曝光点击率'
+      },
+      xAxis: {
+        type: 'category',
+      },
+      yAxis: {
+        type: 'value',
+      },
+      series: list4.value,
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+          type: 'line'
+        }
+      }
+    });
+
+
+  }).catch(err => {
+    console.log(err)
+  })
+}
+
 </script>
 
 <style scoped>

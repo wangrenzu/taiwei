@@ -98,8 +98,7 @@ class LiveRoomData(models.Model):
                                                      null=True)
     product_exposure_users = models.IntegerField(verbose_name='商品曝光人数', null=True)
     product_click_users = models.IntegerField(verbose_name='商品点击人数', null=True)
-    cumulative_deal_amount = models.DecimalField(max_digits=20, decimal_places=4, verbose_name='累计成交金额',
-                                                 null=True)
+    cumulative_deal_amount = models.IntegerField(verbose_name='累计成交金额', null=True)
     cumulative_deal_orders = models.IntegerField(verbose_name='累计成交订单数', null=True)
     room_name = models.CharField(max_length=20, verbose_name='直播间名称', null=True)
 

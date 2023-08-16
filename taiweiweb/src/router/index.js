@@ -121,12 +121,84 @@ const routes = [
     },
     {
         meta: {
+            title: "标签库",
+            keepAlive: true
+        },
+        path: "/tagsphone/:name",
+        name: "tags2",
+        component: () => import("../views/TagsPhone.vue")
+    },
+    {
+        meta: {
             title: "设计",
             keepAlive: true
         },
-        path: "/design/:cart_name",
+        path: "/design/",
         name: "design",
         component: () => import("../views/Design.vue")
+    },
+    {
+        meta: {
+            title: "设计2",
+            keepAlive: true
+        },
+        path: "/design2/",
+        name: "design2",
+        component: () => import("../views/Design2.vue")
+    },
+    {
+        meta: {
+            title: "设计3",
+            keepAlive: true
+        },
+        path: "/design3/:code/:name",
+        name: "design3",
+        component: () => import("../views/Design3.vue")
+    },
+    {
+        meta: {
+            title: "设计4",
+            keepAlive: true
+        },
+        path: "/design4/:type/:name",
+        name: "design4",
+        component: () => import("../views/Design4.vue")
+    },
+    {
+        meta: {
+            title: "在线观众",
+            keepAlive: true
+        },
+        path: "/roomphone/",
+        name: "roomphone",
+        component: () => import("../views/RoomLivePhone.vue")
+    },
+    {
+        meta: {
+            title: "在线观众",
+            keepAlive: true
+        },
+        path: "/roomphone2/",
+        name: "roomphone2",
+        component: () => import("../views/RoomLivePhone2.vue")
+    },
+    {
+        meta: {
+            title: "设计",
+            keepAlive: true
+        },
+        path: "/phonedesign/:name",
+        name: "phonedesign",
+        component: () => import("../views/PhoneDesign.vue")
+    },
+    {
+        meta: {
+            title: "详情",
+            keepAlive: true
+        },
+        path: "/phonedesign/info/:code",
+        name: "phonedesigninfo",
+        component: () => import("../views/PhoneDesignInfo.vue")
     },
 ]
 

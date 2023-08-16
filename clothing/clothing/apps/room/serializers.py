@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Room, Integration, ProductInformation
+from .models import Room, Integration, ProductInformation, LiveRoomData
 
 
 class RoomSerializer(serializers.ModelSerializer):
@@ -41,4 +41,12 @@ class IntegrationSerializer(serializers.ModelSerializer):
 class ProductInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductInformation
+        fields = "__all__"
+
+
+class LiveRoomDataSerializer(serializers.ModelSerializer):
+    datetime = serializers.DateTimeField(format='%Y-%m-%d %H:%M:%S')
+
+    class Meta:
+        model = LiveRoomData
         fields = "__all__"

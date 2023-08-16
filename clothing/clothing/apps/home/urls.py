@@ -47,5 +47,9 @@ urlpatterns = [
     path('computeTime/', views.compute_time),
     re_path(r'^getCategory/(?P<season>.*)/$', views.get_category),
     path("getgoodsinfo/", views.getGoodsInfo.as_view()),
-
+    path("movetodanping/", views.move_to_danping),
+    path("movetodapei/", views.move_to_dapei),
+    path("updatenotesinfo/", views.update_notes_info),
+    path("tracking_echarts/", views.tracking_echarts),
+    path("styletracing/", views.StyleStatusTrackingView.as_view()),
 ]

@@ -263,28 +263,6 @@ const home = reactive({
         })
     },
     /**
-     * 获取新款状态
-     * @param {string} code - 款号
-     * @param {string} tags - 标签
-     * @param {string} date_time - 上传日期
-     * @param {boolean} is_all - 是否获取全部信息
-     * @returns {Promise} 返回一个Promise对象
-     */
-    getStyleStatus(code, tags, date_time, dis, is_all) {
-        return http.get("/home/StyleStatusView", {
-            params: {
-                page: this.style_page,
-                size: this.style_size,
-                code: code,
-                tags: tags,
-                date_time: date_time,
-                dis: dis,
-                is_all: is_all,
-            }
-        })
-    },
-
-    /**
      * 更新新款状态的标签和备注信息
      * @param {number} id - id
      * @param {string} tags - 标签
@@ -331,9 +309,30 @@ const home = reactive({
      * 执行mysql函数计算时间
      * @returns {Promise<axios.AxiosResponse<any>>}
      */
-    compute_time(){
+    compute_time() {
         return http.get("home/computeTime/")
-    }
+    },
+    addDesign2() {
+        return http.post('script/design2/',)
+    },
+    updateNotes(id, content) {
+        return http.get("home/updatenotesinfo/", {
+            params: {
+                id: id,
+                content: content
+            }
+        })
+    },
+    tracking_echarts() {
+        return http.get("home/tracking_echarts/")
+    },
+    styleTracing(code) {
+        return http.get("home/styletracing/", {
+            params: {
+                code: code
+            }
+        })
+    },
 })
 
 

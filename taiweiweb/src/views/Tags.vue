@@ -23,7 +23,7 @@
             <el-tag
                 class="mx-1"
                 :disable-transitions="false"
-                @click="tags.season=item">
+                @click="updateseason(item)">
               {{ item }}
             </el-tag>
           </div>
@@ -223,12 +223,12 @@ import {tags} from "../api/tags.js";
 import cart from "../api/cart.js";
 import {ElMessage} from "element-plus";
 
-const list1 = ref(["10-11月", "过年12月-1月", '6-7月', '8-9月', '4-5月', '四季', '早春2-3月']) //季节标签
+const list1 = ref(["10-11月", "过年12月-1月", '6-7月', '8-9月', '4-5月', '四季', '早春2-3月', '日用品配饰', '全部']) //季节标签
 const list2 = ref(['今年新款', '往年老款', '翻单款'])  //生产和年份标签
 const list3 = ref([]);  //品类标签
 const list4 = ref(["库存?-?件", "库存>?件", "库存<?件"])     //数量标签
 const list5 = ref(['在车间', '在后道', '入仓没上架'])  //池子标签
-const list6 = ref(['抖音没卖过', '30天没卖过',"7天没卖过","搭配有效款"])    //销售标签
+const list6 = ref(['抖音没卖过', '30天没卖过', "7天没卖过", "有效款"])    //销售标签
 const list7 = ref([])    //广告标签
 const list8 = ref([[], [], []])
 const list9 = ref([[], [], []])
@@ -281,6 +281,11 @@ const getType = (code_describe) => {
   if (code_describe === "日用品") {
     return "danger"
   }
+}
+
+
+const updateseason = (item) => {
+  tags.season = item
 }
 
 const addCart = (code, name, source) => {
@@ -342,7 +347,6 @@ const getGoodsInfo = (tag_list, key) => {
     console.log(err)
   })
 }
-
 
 watch(
     () => tags.season,

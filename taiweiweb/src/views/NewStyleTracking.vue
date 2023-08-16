@@ -75,6 +75,7 @@
     </div>
     <div
         class="list"
+        style="z-index: 1"
         @drop="dropList($event, 2)"
         @dragover.prevent>
       <span style="color: #e1ba20">后道&nbsp;&nbsp;{{ totalQuantity3 }}件</span>
@@ -232,10 +233,11 @@
 
 
     <div
+        style="height: 700px"
         class="list"
         @drop="dropList($event, 7)"
         @dragover.prevent>
-      <span style="color: #e1ba20">加急&nbsp;&nbsp;{{ totalQuantity8 }}件</span>
+      <span style="color: #e1ba20">加急,不会动,显示每个仓数量&nbsp;&nbsp;{{ totalQuantity8 }}件</span>
       <div
           class="item-flex"
           v-for="(item, j) in list8"
@@ -260,7 +262,14 @@
           <span v-else @click="update_input=item.id">
           {{ item.expected_date.slice(5).replace("-", '') }}-
         </span>
-          ({{ item.notes }})
+          ({{ item.notes }})-
+          <el-input style="width: 200px"
+                    type="textarea"
+                    v-model="item.notes_info"
+                    @blur="updateNotesInfo(item.id,item.notes_info)"
+                    placeholder="备注">
+
+          </el-input>
         </div>
         <div class="auto-time">
           {{ item.auto_time.slice(5).replace("-", '') }}
@@ -271,16 +280,24 @@
   </div>
   <el-button type="primary" @click="exportExcel(list9Fields,list9)">导出</el-button>
   <el-table
-
       :data="list9"
-      style="width: 30%" border fit height="620">
+      style="width: 30%;margin-bottom: 20px"
+      border fit height="620">
     <el-table-column type="index" label="序号" width="70" show-overflow-tooltip/>
-    <el-table-column prop="label" label="池子" show-overflow-tooltip/>
+    <el-table-column prop="label2" label="池子" show-overflow-tooltip/>
     <el-table-column prop="category" label="品类" show-overflow-tooltip/>
     <el-table-column prop="num" label="项目个数" show-overflow-tooltip/>
     <el-table-column prop="total_quantity" label="件数" show-overflow-tooltip/>
 
   </el-table>
+  <div class="charts-container">
+    <div ref="chartDom1" class="chart"></div>
+    <div ref="chartDom2" class="chart"></div>
+    <div ref="chartDom3" class="chart"></div>
+    <div ref="chartDom6" class="chart"></div>
+    <div ref="chartDom4" class="chart2"></div>
+  </div>
+
 </template>
 
 <script setup>
@@ -289,6 +306,27 @@ import home from "../api/home";
 import {ElMessage} from "element-plus";
 import FileSaver from 'file-saver';
 import * as XLSX from "xlsx";
+import * as echarts from 'echarts/core';
+import {
+  TitleComponent,
+  TooltipComponent,
+  GridComponent,
+  LegendComponent
+} from 'echarts/components';
+import {LineChart, ScatterChart, BarChart} from 'echarts/charts';
+import {CanvasRenderer} from 'echarts/renderers';
+
+echarts.use([
+  BarChart,
+  TitleComponent,
+  TooltipComponent,
+  GridComponent,
+  LegendComponent,
+  LineChart,
+  CanvasRenderer,
+  ScatterChart
+]);
+
 
 const list1 = ref([])
 const list2 = ref([])
@@ -318,6 +356,16 @@ const list9Fields = [
   {key: 'total_quantity', label: '件数'},
 ]
 
+const updateNotesInfo = (id, content) => {
+  home.updateNotes(id, content).then(response => {
+    ElMessage({
+      message: '更新成功',
+      type: 'success',
+    })
+  }).catch(err => {
+    ElMessage.error(err)
+  })
+}
 
 const exportExcel = (exportFields, data_list) => {
   const sheet = XLSX.utils.json_to_sheet(data_list.map(item => {
@@ -468,6 +516,103 @@ const isd = () => {
     item.is_d = codeCount[code] > 1 ? 1 : 0
   })
 }
+const chartDom1 = ref(null);
+let chartInstance1 = null;
+const chartDom2 = ref(null);
+let chartInstance2 = null;
+const chartDom3 = ref(null);
+let chartInstance3 = null;
+const chartDom4 = ref(null);
+let chartInstance4 = null;
+const chartDom5 = ref(null);
+let chartInstance5 = null;
+const chartDom6 = ref(null);
+let chartInstance6 = null;
+const getEcharts = (data, name, dom, instance) => {
+  const categories = [];  // 用于 x 轴的数据
+  const totals = [];      // 用于 y 轴的数据
+  const tooltips = [];    // 用于保存鼠标悬停时的提示信息
+
+  data.forEach(item => {
+    for (let key in item) {
+      if (key !== 'total') {
+        categories.push(key);
+        totals.push(item['total']);
+
+        // 创建鼠标悬停提示信息
+        let tooltipInfo = '';
+        item[key].forEach(detail => {
+          for (let subKey in detail) {
+            tooltipInfo += `${subKey}: ${detail[subKey]}<br>`;
+          }
+        });
+        tooltips.push(tooltipInfo);
+      }
+    }
+  });
+
+  instance = echarts.init(dom.value);
+  const colors = ['#ff7f50', '#87cefa', '#da70d6', '#32cd32', '#6495ed', '#ff69b4', '#ba55d3', '#cd5c5c', '#ffa500', '#40e0d0'];
+  const option = {
+    title: {
+      text: name,  // 修改为你想要的标题
+      left: 'center',   // 标题居中
+      top: 'top'       // 标题位于图表的顶部
+    },
+    xAxis: {
+      type: 'category',
+      data: categories,
+      axisLabel: {
+        interval: 0,  // 每隔一个刻度显示一个标签
+        rotate: 45,   // 如果标签之间仍然重叠，你可以尝试旋转标签
+      }
+    },
+    yAxis: {
+      type: 'value'
+    },
+
+    tooltip: {
+      trigger: 'axis',
+      formatter: function (params) {
+        // 将字符串拆分为各个部分
+        const parts = tooltips[params[0].dataIndex].split('<br>');
+        // 为每部分数据设置颜色
+        const coloredParts = parts.map((part, index) => `<span style="color:${colors[index]}">${part}<br></span>`).join('    ');
+        return `${params[0].name}<br/>${coloredParts}`;
+      }
+    },
+    series: [{
+      data: totals,
+      type: 'bar',
+      barWidth: '80%',  // 调整柱子的宽度
+      barGap: '70%',    // 调整柱子之间的间距
+      label: {
+        show: true,           // 显示标签
+        position: 'top',      // 标签位置
+        color: '#000',        // 标签文字颜色
+        formatter: '{c}'      // 标签内容，{c} 代表数据值
+      }
+    }]
+  };
+
+  instance.setOption(option);
+
+}
+
+const data = ref([])
+const tracking_echarts = () => {
+  home.tracking_echarts().then(response => {
+    data.value = response.data.data
+    getEcharts(data.value["车间生产"], "车间生产", chartDom1, chartInstance1)
+    getEcharts(data.value["刚下单"], "刚下单", chartDom2, chartInstance2)
+    getEcharts(data.value["后道"], "后道", chartDom3, chartInstance3)
+    getEcharts(data.value["成品没上架"], "成品没上架", chartDom4, chartInstance4)
+    getEcharts(data.value["加急"], "加急", chartDom6, chartInstance6)
+  }).catch(err => {
+    console.log(err)
+  })
+}
+tracking_echarts()
 
 
 </script>
@@ -480,14 +625,14 @@ const isd = () => {
   grid-template-rows: repeat(2, 1fr);
   gap: 20px;
   width: 100%;
-  height: 100vh;
+  height: 1100px;
   padding: 20px;
   text-align: center;
 }
 
 .list {
   width: 90%;
-  height: 90%;
+  height: auto;
   border: 1px solid #ccc;
   padding: 10px;
   overflow-y: auto;
@@ -517,6 +662,25 @@ const isd = () => {
   display: flex;
 
 }
+.charts-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+.chart {
+  width: 400px;
+  height: 400px;
+  margin-right: 10px;
+  margin-bottom: 10px;
+}
+
+.chart2 {
+  width: 1000px;
+  height: 400px;
+  margin-right: 10px;
+  margin-bottom: 10px;
+}
 
 .auto-time {
   flex: 0.5;
@@ -540,6 +704,7 @@ const isd = () => {
 
 
 .box {
+  margin-top: -400px;
   display: flex;
   justify-content: center;
   align-items: center;

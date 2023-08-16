@@ -55,25 +55,25 @@
     <el-table-column prop="successful" label="成功" width="60" show-overflow-tooltip/>
     <el-table-column prop="returned" label="退回" width="60" show-overflow-tooltip/>
 
-    <el-table-column label="直播间30天最大转化率" width="100" show-overflow-tooltip>
+    <el-table-column prop="live_deal_conversion_rate" label="直播间30天最大转化率" width="100" sortable show-overflow-tooltip>
       <template #default="scope">
         {{ (scope.row.live_deal_conversion_rate * 100).toFixed(2) + '%' }}
       </template>
     </el-table-column>
-    <el-table-column label="曝光点击率" width="100" show-overflow-tooltip>
+    <el-table-column  prop="exposure_click_rate" label="曝光点击率" width="100" sortable show-overflow-tooltip>
       <template #default="scope">
         {{ (scope.row.exposure_click_rate * 100).toFixed(2) + '%' }}
       </template>
     </el-table-column>
-    <el-table-column prop="max_exposure_quantity" label="近三天最大曝光量" width="80" show-overflow-tooltip/>
-    <el-table-column prop="avg_live_exposure_count" label="3天平均曝光量" width="80" show-overflow-tooltip/>
-    <el-table-column prop="exposure" label="本场曝光量" width="80" show-overflow-tooltip/>
-    <el-table-column label="本场曝光点击率" width="80" show-overflow-tooltip>
+    <el-table-column prop="max_exposure_quantity" label="近三天最大曝光量" sortable width="80" show-overflow-tooltip/>
+    <el-table-column prop="avg_live_exposure_count" label="3天平均曝光量" sortable width="80" show-overflow-tooltip/>
+    <el-table-column prop="exposure" label="本场曝光量" sortable width="80" show-overflow-tooltip/>
+    <el-table-column prop="clickExposure" label="本场曝光点击率" sortable  width="80" show-overflow-tooltip>
       <template #default="scope">
         {{ (scope.row.clickExposure * 100).toFixed(2) + '%' }}
       </template>
     </el-table-column>
-    <el-table-column label="本场点击成交率" width="80" show-overflow-tooltip>
+    <el-table-column  prop="clickDeal" label="本场点击成交率" sortable width="80" show-overflow-tooltip>
       <template #default="scope">
         {{ (scope.row.clickDeal * 100).toFixed(2) + '%' }}
       </template>
@@ -105,11 +105,13 @@ import {ElMessage} from "element-plus";
 import * as XLSX from "xlsx";
 import FileSaver from 'file-saver';
 import {Download} from '@element-plus/icons-vue'
-import {useRoute} from 'vue-router';
+import {useRoute, useRouter} from 'vue-router';
 import UpdateCodeLink from "../components/UpdateCodeLink.vue";
+import {useCounterStore} from "../stores/store.js";
 
 
 const route = useRoute();
+const router = useRouter();
 
 // 导出的字段内容
 const cartData = [
@@ -221,9 +223,6 @@ const addCart = () => {
   })
 }
 
-// const Filed = {
-//   "款号":,
-// }
 const getCartLink = () => {
   cart.codes = []
   cart.cart_list.forEach(item => {
@@ -235,16 +234,15 @@ const getCartLink = () => {
     console.log(err)
   })
 }
-
+const store = useCounterStore()
 const addDesignCode = () => {
   cart.codes = []
-  const cart_name = route.params.cart_name
   cart.cart_list.forEach(item => {
     cart.codes.push(item.commodity_code)
   })
-  cart.addDesign(cart.codes, cart_name).then(response => {
-    window.open("/design/" + cart_name)
-
+  cart.addDesign(cart.codes).then(response => {
+    store.code_list = cart.codes
+    router.push({ path: '/design/'  });
   }).catch(err => {
     ElMessage.error("错误")
   })

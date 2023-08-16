@@ -144,6 +144,60 @@ const room = reactive({
             room_name: room_name,
         })
     },
+    getLiveRoomData(room_name) {
+        return http.get('/room/LiveRoomData/', {
+            params: {
+                room_name: room_name,
+                date_time: this.date_time,
+            }
+        })
+    },
+    getEcharts1(room_name, date_time) {
+        return http.get("/room/echarts1", {
+            params: {
+                room_name: room_name,
+                date_time: date_time,
+            }
+        })
+    },
+    getEcharts2(room_name) {
+        return http.get("/room/echarts2", {
+            params: {
+                room_name: room_name,
+
+            }
+        })
+    },
+    getEcharts3(room_name, search_code) {
+        return http.get("/room/echarts3", {
+            params: {
+                room_name: room_name,
+                search_code: search_code,
+
+            }
+        })
+    },
+    getEcharts4(room_name, search_code) {
+        return http.get("/room/echarts4", {
+            params: {
+                room_name: room_name,
+                search_code: search_code,
+            }
+        })
+    },
+    update_code(code,img,id,number) {
+        return http.get("room/updatecode/", {
+            params: {
+                code: code,
+                img: img,
+                id: id,
+                number: number,
+            }
+        })
+    },
+    get_code(){
+        return http.get("room/getcode/")
+    },
 })
 
 export default room;

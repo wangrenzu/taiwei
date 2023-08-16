@@ -1,4 +1,8 @@
 import io
+import json
+import os
+import shutil
+
 from django.db.models import Q, OuterRef, Subquery
 import re
 import pandas as pd
@@ -1782,15 +1786,16 @@ class UpdateGoods(APIView):
             category = row["品类"]
             if category in describeinfo.code_list1:
                 describe = "配饰"
-            if category in describeinfo.code_list2:
+            elif category in describeinfo.code_list2:
                 describe = "上衣"
-            if category in describeinfo.code_list3:
+            elif category in describeinfo.code_list3:
                 describe = "下衣"
-            if category in describeinfo.code_list4:
+            elif category in describeinfo.code_list4:
                 describe = "一身"
-            if category in describeinfo.code_list5:
+            elif category in describeinfo.code_list5:
                 describe = "日用品"
-
+            else:
+                describe = ""
             goods = Goods(
                 merchant_code=row["货品编号"],
                 merchant_name=row["品名"],
@@ -3035,22 +3040,6 @@ class updateRepeatOrder(APIView):
                 )
 
                 newStyle_list.append(new_style)
-                status_time_timestamp = row.iloc[0]
-                status_time = status_time_timestamp.to_pydatetime()
-                # target_date = datetime(2023, 6, 2)
-                # try:
-                #     if status_time > target_date:
-                #         insert_new_style_status_tracking(status_time, row.iloc[6], '新款', row.iloc[2])
-                # except Exception as e:
-                #     return JsonResponse({'error': str(e)}, status=500)
-                try:
-                    # 调用insert_style_status把该条内容插入数据库
-                    insert_style_status(status_time, date_time, '新款', row.iloc[2])
-                    if not NewStyleStatusTracking.objects.filter(code=row.iloc[2]).exists():
-                        insert_new_style_status_tracking(status_time, row.iloc[6], '新款', row.iloc[2])
-                except DatabaseError as e:
-                    return JsonResponse({'error': str(e)}, status=500)
-
             for index, row in df2.iterrows():
                 if str(row.iloc[6]).strip().__len__() == 0 or pd.isnull(row.iloc[6]):  # 检查 总件数 是否为空
                     row.iloc[6] = 100
@@ -3069,24 +3058,6 @@ class updateRepeatOrder(APIView):
                     circulation_table_flow_down=row.iloc[12] or None,
                 )
                 repeatOrder_list.append(repeat_order)
-                status_time_timestamp = row.iloc[0]
-                status_time = status_time_timestamp.to_pydatetime()
-                # target_date = datetime(2023, 6, 2)
-                # try:
-                #     if status_time > target_date:
-                #         insert_new_style_status_tracking(status_time, row.iloc[6], '翻单', row.iloc[2])
-                # except Exception as e:
-                #     return JsonResponse({'error': str(e)}, status=500)
-                try:
-                    target_date = datetime(2023, 5, 1)
-                    if status_time > target_date:
-                        insert_style_status(status_time, date_time, '翻单', row.iloc[2])
-                        if not NewStyleStatusTracking.objects.filter(code=row.iloc[2], status="翻单",
-                                                                     order_date=row.iloc[0]).exists():
-                            insert_new_style_status_tracking(status_time, row.iloc[6], '翻单', row.iloc[2])
-                except DatabaseError as e:
-                    return JsonResponse({'error': str(e)}, status=500)
-
             try:
                 newStyle.objects.all().delete()
                 repeatOrder.objects.all().delete()
@@ -3212,6 +3183,7 @@ class StyleStatusView(APIView):
         """
         # 款号
         code = request.query_params.get('code')
+
         # 标签
         tags = request.query_params.get('tags')
         # 是否导出
@@ -3290,173 +3262,6 @@ class StyleStatusView(APIView):
             return JsonResponse({'error': str(e)}, status=500)
 
 
-def insert_style_status(status_time, date_time, tag, code):
-    """
-    根据款号生成该款号的每天状态并插入数据库
-    :param status_time: 下单日期
-    :param date_time: 报表上传日期
-    :param tag: 标签
-    :param code: 款号
-    :return:
-    """
-    query = """
-        INSERT INTO
-        taiwei_style_status
-        (time,date_time,code,cai_chuang,che_jian,hou_dao,
-        tai_wei,yi_fa,mo_ya,fabric_price,materials_price,factory_price,
-        salesrecord_price,order_price,to_salesrecord_time,time_num,tags,
-        remarks,is_other,num)
-        SELECT
-            %s,
-            %s,
-            a.*,
-            e.price AS fabric_price,
-            d.price AS material_price,
-            f.price AS factory_price,
-            c.total as salesrecord_price,
-            b.order_total_amount,	
-            g.registration_time as to_salesrecord_time,
-            %s as time_num,
-            CONCAT_WS(',',
-                IF(d.is_taiwei_materials IS NOT NULL, '采购面料', NULL),   #采购面料
-                IF(e.is_taiwei_fabric IS NOT NULL, '采购辅料', NULL),			#采购辅料
-                IF(
-                    (DATE_SUB(CURDATE(), INTERVAL 20 DAY) <= %s)
-                    AND
-                    ((status = '新款' AND 
-                    ((a.cai_chuang+a.che_jian+a.hou_dao+a.tai_wei+a.yi_fa+a.mo_ya) = 0))
-                    OR
-                    (status = '翻单' AND (t.inventory2>0 OR a.che_jian<=s.che_jian))),
-                    '没到车间',
-                    NULL
-                ),						#没到车间
-                IF((a.che_jian-s.che_jian)>=10, '刚到车间', NULL),						#刚到车间
-                IF((a.che_jian = s.che_jian) AND a.che_jian>11, '车间加工中', NULL),			#车间加工中
-                IF((a.hou_dao = s.hou_dao) AND a.hou_dao>11, '在后道', NULL),			#在后道
-                IF(a.hou_dao < s.hou_dao, '入仓', NULL),						#入仓
-                IF(g.is_taiwei_stock_in IS NOT NULL, '到档口', NULL),			#到档口
-                IF(t.inventory !=0,'在档口',NULL),			#在档口
-                %s
-            ) as tags,
-            '' as remarks,
-            0,
-            b.num
-        FROM (
-            SELECT
-                code,
-                SUM(CASE WHEN house like "裁床%%" THEN inventory ELSE 0 END) AS cai_chuang,
-                SUM(CASE WHEN house like "%%车间%%" THEN inventory ELSE 0 END) AS che_jian,
-                SUM(CASE WHEN house like "%%后道%%" THEN inventory ELSE 0 END) AS hou_dao,
-                SUM(CASE WHEN house like "%%泰维%%" THEN inventory ELSE 0 END) AS tai_wei,
-                SUM(CASE WHEN house like "%%意法%%" THEN inventory ELSE 0 END) AS yi_fa,
-                SUM(CASE WHEN house like "%%茉雅%%" THEN inventory ELSE 0 END) AS mo_ya
-            FROM taiwei_stock
-            WHERE code = %s
-            GROUP BY code
-        ) AS a
-        LEFT JOIN (
-            SELECT
-                LEFT(merchant_code, LENGTH(merchant_code)-1) AS code,
-                (
-                SELECT 
-                SUM(order_total_amount) AS order_total_amount
-                FROM 
-                taiwei_orders
-                 WHERE order_status = '已完成' AND 
-                 (after_sale_status LIKE '%%售后关闭%%' OR after_sale_status = '-') AND 
-                 LEFT(merchant_code, LENGTH(merchant_code)-1) = %s
-                 GROUP BY LEFT(merchant_code, LENGTH(merchant_code)-1)
-                ) as order_total_amount,
-                COUNT(DISTINCT DATE(order_submit_time)) as num
-            FROM taiwei_orders
-            WHERE LEFT(merchant_code, LENGTH(merchant_code)-1) = %s
-            GROUP BY LEFT(merchant_code, LENGTH(merchant_code)-1)
-        ) AS b ON  b.code = a.code
-        LEFT JOIN (
-            SELECT
-                product_code AS code,
-                SUM(total) AS total
-            FROM taiwei_salesrecord
-            WHERE product_code = %s
-            GROUP BY product_code
-        ) AS c ON  c.code = a.code
-        LEFT JOIN (
-            SELECT
-                merchant_code,
-                SUM(price) AS price,
-                (
-                    SELECT merchant_code FROM taiwei_materials WHERE DATE(`time`) = CURDATE() AND merchant_code = %s LIMIT 1
-                ) as is_taiwei_materials
-            FROM taiwei_materials
-            WHERE merchant_code = %s
-            GROUP BY merchant_code
-        ) AS d ON d.merchant_code = a.code
-        LEFT JOIN (
-            SELECT
-                merchant_code,
-                SUM(price) AS price,
-                (
-                    SELECT merchant_code FROM taiwei_fabric WHERE DATE(`time`) = CURDATE() AND merchant_code = %s LIMIT 1
-                ) as is_taiwei_fabric
-            FROM taiwei_fabric
-            WHERE merchant_code = %s
-            GROUP BY merchant_code
-        ) AS e ON  e.merchant_code = a.code
-        LEFT JOIN (
-            SELECT
-                code,
-                SUM(price) AS price
-            FROM taiwei_factory
-            WHERE code = %s
-            GROUP BY code
-        ) AS f ON f.code = a.code
-        LEFT JOIN(
-            SELECT
-            *
-            FROM 
-            taiwei_style_status
-            WHERE code = %s
-            AND date_time != CURDATE()
-            ORDER BY date_time desc
-            LIMIT 1
-        )as s ON  s.code = a.code
-        
-        LEFT JOIN
-        (
-        SELECT
-        product_code,
-        DATE(MAX(registration_time)) as registration_time,
-        (
-            SELECT product_code FROM taiwei_stock_in WHERE DATE(`registration_time`) = CURDATE() AND product_code = %s LIMIT 1
-        ) is_taiwei_stock_in
-        FROM
-        taiwei_stock_in
-        WHERE product_code = %s
-        GROUP BY product_code
-        ) as g ON g.product_code = a.code
-        LEFT JOIN
-        (
-            SELECT
-            code,
-            SUM(CASE WHEN house="意法仓" OR house="vege档口" OR house="MOIA档口" THEN inventory ELSE 0 END) as inventory,
-            SUM(CASE WHEN house="积聚仓" OR house="裁床" THEN inventory ELSE 0  END ) as inventory2,
-            %s as status
-            FROM
-            taiwei_stock
-            WHERE code=%s
-            GROUP BY code 
-        ) as t on t.code = a.code
-    """
-    # 计算出下单到今日的天数
-    difference = date_time - status_time
-    difference_in_days = difference.days
-
-    with connection.cursor() as cursor:
-        cursor.execute(query,
-                       [status_time, date_time, difference_in_days, status_time, tag, code, code, code, code,
-                        code, code, code, code, code, code, code, code, tag, code])
-
-
 def insert_new_style_status_tracking(order_date, total_quantity, status, code):
     """
     插入新款跟踪数据
@@ -3517,6 +3322,7 @@ class NewStyleStatusTrackingView(APIView):
         query = """
         SELECT
         null as id,
+        s.label,
         CASE 
         WHEN s.label=1 THEN "刚下单"
         WHEN s.label=2 THEN "车间生产"
@@ -3526,7 +3332,7 @@ class NewStyleStatusTrackingView(APIView):
         WHEN s.label=6 THEN "成衣水洗等工艺"
         WHEN s.label=8 THEN "加急"
         ELSE NULL
-		END as label,
+		END as label2,
         g.category,
         SUM(s.total_quantity) as total_quantity,
         COUNT(s.id) as num
@@ -3659,10 +3465,10 @@ class NewStyleStatusTrackingView(APIView):
                     WHERE house LIKE '裁床%%' AND code = "{code}" GROUP BY code)""")
             if end_label == 8:
                 set_list.append(f"""
-                    notes = CONCAT(notes,(
+                    notes = CONCAT((
                             SELECT
                             CONCAT(
-                            "-裁床(",SUM(CASE WHEN house like "裁床%" THEN inventory ELSE 0 END),
+                            "裁床(",SUM(CASE WHEN house like "裁床%" THEN inventory ELSE 0 END),
                             ")-车间(",
                             SUM(CASE WHEN house like "%%车间%%" THEN inventory ELSE 0 END),
                             ")-后道(",
@@ -3718,31 +3524,7 @@ def compute_time(request):
 
 
 def get_category(request, season):
-    query = f"""
-        SELECT
-        category,
-        code_describe
-        FROM
-        (
-            SELECT
-            g.category as category,
-            SUM(inventory) as inventory,
-            MAX(g.code_describe) as code_describe
-            FROM
-            taiwei_goods as g
-            LEFT JOIN taiwei_stock as s
-            ON g.merchant_code = s.code
-            WHERE g.merchant_code not in("zk0111","zk1111","za04001","yf0111","zk0101","kk0101","za21297","za21296","zk0108")
-            AND (s.house="泰维仓" or s.house like"茉雅%%")
-            AND s.inventory != 0
-            AND g.category != "nan"
-            AND g.season = "{season}"
-            GROUP BY g.category 
-            ORDER BY inventory desc
-        ) as c
-        ORDER BY code_describe
-    """
-    if season == "null":
+    if season == "日用品配饰":
         query = f"""
                 SELECT
                 category,
@@ -3761,10 +3543,37 @@ def get_category(request, season):
                     AND (s.house="泰维仓" or s.house like"茉雅%%")
                     AND s.inventory != 0
                     AND g.category != "nan"
+                    AND code_describe in ('日用品','配饰')
                     GROUP BY g.category 
                     HAVING category !="配饰"
                     ORDER BY inventory desc
                     LIMIT 20
+                    ) as c
+                ORDER BY code_describe
+                """
+    else:
+        query = f"""
+                SELECT
+                category,
+                code_describe
+                FROM
+                (
+                    SELECT
+                    g.category as category,
+                    SUM(inventory) as inventory,
+                    MAX(g.code_describe) as code_describe
+                    FROM
+                    taiwei_goods as g
+                    LEFT JOIN taiwei_stock as s
+                    ON g.merchant_code = s.code
+                    WHERE g.merchant_code not in("zk0111","zk1111","za04001","yf0111","zk0101","kk0101","za21297","za21296","zk0108")
+                    AND (s.house="泰维仓" or s.house like"茉雅%%")
+                    AND s.inventory != 0
+                    AND category not in ('nan')
+                    AND code_describe not in ('日用品','配饰')
+                    GROUP BY g.category 
+                    HAVING category !="配饰"
+                    ORDER BY inventory desc
                     ) as c
                 ORDER BY code_describe
                 """
@@ -3780,6 +3589,7 @@ def get_category(request, season):
 class getGoodsInfo(APIView):
     def post(self, request):
         tag_list = request.data.get("tag_list")
+        search_code = request.data.get("search_code")
         and_where_list = []
         category_list = Goods.objects.values('category').distinct()
         season_list = Goods.objects.values('season').distinct()
@@ -3800,7 +3610,6 @@ class getGoodsInfo(APIView):
             GROUP BY g.merchant_code
             HAVING 
         """
-
         for tags in tag_list:
             if not tags:  # 检查tags是否为空列表
                 continue
@@ -3828,28 +3637,28 @@ class getGoodsInfo(APIView):
                     start_num = int(match.group('start_num'))
                     end_num = int(match.group('end_num'))
                     or_where_list.append(
-                        f"""code in (SELECT code FROM taiwei_stock 
-                        where house = '泰维仓' or house like '茉雅%%' 
-                        GROUP BY code 
+                        f"""code in (SELECT code FROM taiwei_stock
+                        where house = '泰维仓' or house like '茉雅%%'
+                        GROUP BY code
                         HAVING SUM(inventory)<{end_num} AND SUM(inventory)>{start_num})"""
                     )
                 if match := re.match(r'^库存>(?P<num>\d+)件', tag):
                     num = int(match.group('num'))
                     or_where_list.append(
-                        f"""code in 
-                        (SELECT code FROM taiwei_stock where 
-                        house = "泰维仓" or house like "茉雅%%" 
-                        GROUP BY code 
+                        f"""code in
+                        (SELECT code FROM taiwei_stock where
+                        house = "泰维仓" or house like "茉雅%%"
+                        GROUP BY code
                         HAVING SUM(inventory)>{num})
                         """
                     )
                 if match := re.match(r'^库存<(?P<num>\d+)件', tag):
                     num = int(match.group('num'))
                     or_where_list.append(
-                        f"""code in 
-                        (SELECT code FROM taiwei_stock where 
-                        house = "泰维仓" or house like "茉雅%%" 
-                        GROUP BY code 
+                        f"""code in
+                        (SELECT code FROM taiwei_stock where
+                        house = "泰维仓" or house like "茉雅%%"
+                        GROUP BY code
                         HAVING SUM(inventory)<{num})
                         """
                     )
@@ -3875,7 +3684,7 @@ class getGoodsInfo(APIView):
                             SELECT
                             DISTINCT LEFT(merchant_code,LENGTH(merchant_code)-1)
                             FROM
-                            taiwei_orders 
+                            taiwei_orders
                             WHERE DATE(order_submit_time) >= CURDATE() - INTERVAL 30 DAY
                         )"""
                     )
@@ -3885,56 +3694,329 @@ class getGoodsInfo(APIView):
                             SELECT
                             DISTINCT LEFT(merchant_code,LENGTH(merchant_code)-1)
                             FROM
-                            taiwei_orders 
+                            taiwei_orders
                             WHERE DATE(order_submit_time) >= CURDATE() - INTERVAL 7 DAY
                         )"""
                     )
-                if tag == "搭配有效款":
-                    stock_code = []
-                    # 查询出搭配款是三个以上的数据
-                    query_codes = """
-                        SELECT
-                        d.code,
-                        c.codes
-                        FROM
-                        taiwei_design as d
-                        LEFT JOIN taiwei_design_tags as t
-                        ON d.id = t.design_id
-                        LEFT JOIN taiwei_design_collocation as c
-                        ON t.id = c.tags_id
-                        WHERE tags = "搭配"
-                        AND LENGTH(c.codes) > 8 
-                    """
-                    with connection.cursor() as cursor:
-                        cursor.execute(query_codes)
-                        result = cursor.fetchall()
-                    # 获取主款和搭配款的所有款号
-                    for r in result:
-                        code = r[0]
-                        codes = r[1].split(",")
-                        # 循环搭配款的所有款号判断库存是否为0
-                        for index, c in enumerate(codes):
-                            stock_query = """
-                                SELECT
-                                SUM(inventory)
-                                FROM 
-                                taiwei_stock
-                                WHERE code = %s
-                                AND (house = "泰维仓" or house like "茉雅%%") 
-                                GROUP BY code
-                            """
-                            with connection.cursor() as cursor:
-                                cursor.execute(stock_query, [c])
-                                inventory = cursor.fetchone()
-                            if inventory and int(inventory[0]) <= 0:
-                                break
-                            if index == len(codes) - 1:
-                                stock_code.append(code)
-
-                    or_where_list.append(f"code in {tuple(stock_code)}")
+                if tag == "有效款":
+                    path = 'Y:/'
+                    pattern = r'[a-z]+\d+'
+                    matching_filenames = []
+                    for filename in os.listdir(path):
+                        matches = re.findall(pattern, filename, re.IGNORECASE)
+                        matching_filenames.extend(matches)
+                    or_where_list.append(f"code in {tuple(set(matching_filenames))}")
             and_where_list.append("(" + " OR ".join(or_where_list) + ")")
+        if search_code:
+            and_where_list.append(f"code = '{search_code}'")
         query += " AND ".join(and_where_list)
         query += " ORDER BY inventory DESC"
         result = Goods.objects.raw(query)
         serializer = GoodsSerializer(result, many=True)
         return JsonResponse({'data': serializer.data}, status=200)
+
+
+def move_to_danping(request):
+    try:
+        name = request.GET.get("name")
+        new_path = 'U:/'
+        old_path = 'V:/'
+        if name == "yijia":
+            new_path = 'S:/'
+        if name == 'xj':
+            new_path = 'Q:/'
+        if name == 'yy':
+            new_path = 'O:/'
+        data_list = json.loads(request.GET.get('data_list'))
+
+        for item in data_list:
+            if item["checked"]:
+                file_name = f'{item["code"]}.jpg'
+                source_file = os.path.join(old_path, file_name)
+                destination_file = os.path.join(new_path, file_name)
+                shutil.copy(source_file, destination_file)
+        return HttpResponse("移动成功")
+    except Exception as e:
+        return HttpResponse(f"移动失败{e}")
+
+
+def move_to_dapei(request):
+    try:
+        name = request.GET.get("name")
+        new_path = 'T:/'
+        if name == "yijia":
+            new_path = 'R:/'
+        if name == 'xj':
+            new_path = 'P:/'
+        if name == 'yy':
+            new_path = 'N:/'
+        old_path = 'Y:/'
+        data_list = json.loads(request.GET.get('data_list'))
+        for key, value in data_list.items():
+            if value["checked"]:
+                file_name = key
+                source_file = os.path.join(old_path, file_name)
+                destination_file = os.path.join(new_path, file_name)
+                shutil.copy(source_file, destination_file)
+        return HttpResponse("移动成功")
+    except Exception as e:
+        return HttpResponse(f"移动失败{e}")
+
+
+def update_notes_info(request):
+    content = request.GET.get('content')
+    id = request.GET.get('id')
+    NewStyleStatusTracking.objects.filter(pk=id).update(notes_info=content)
+    return HttpResponse("OK")
+
+
+def tracking_echarts(request):
+    label_dic = {2: "车间生产", 1: "刚下单", 5: "刚下单", 3: "后道", 4: "成品没上架", 6: "成衣水洗等工艺", 8: "加急"}
+    data = {}
+    for i, label in label_dic.items():
+        query = f"""
+                SELECT
+                null as id,
+                s.label,
+                CASE 
+                WHEN s.label=1 THEN "刚下单"
+                WHEN s.label=2 THEN "车间生产"
+                WHEN s.label=3 THEN "后道"
+                WHEN s.label=4 THEN "成品没上架"
+                WHEN s.label=5 THEN "刚下单"
+                WHEN s.label=6 THEN "成衣水洗等工艺"
+                WHEN s.label=8 THEN "加急"
+                ELSE NULL
+                END as label2,
+                g.category,
+                SUM(s.total_quantity) as total_quantity,
+                COUNT(s.id) as num
+                FROM
+                taiwei_new_style_status_tracking as s
+                LEFT JOIN 
+                taiwei_goods as g
+                ON g.merchant_code = s.code
+                WHERE s.label = {i}
+                GROUP BY s.label,g.category
+                """
+        with connection.cursor() as cursor:
+            cursor.execute(query)
+            result = cursor.fetchall()
+        info_list = []
+        for item in result:
+            query_info = f"""
+                SELECT
+                code,total_quantity
+                FROM
+                taiwei_new_style_status_tracking as s
+                LEFT JOIN taiwei_goods as g
+                ON g.merchant_code = s.code 
+                WHERE s.label = {item[1]} and g.category = "{item[3]}"
+            """
+            with connection.cursor() as cursor:
+                cursor.execute(query_info)
+                result2 = cursor.fetchall()
+            code_list = []
+            for item2 in result2:
+                code_list.append({item2[0]: item2[1]})
+            info_list.append({f"{str(item[3])}{str(item[5])}": code_list, "total": int(item[4])})
+        if label in data:
+            data[label].extend(info_list)
+        else:
+            data[label] = info_list
+
+    return JsonResponse({'data': data}, status=200)
+
+
+class StyleStatusTrackingView(APIView):
+    def get(self, request):
+        codes = request.GET.get("code")
+        result = []
+        for code in set(codes.split("\n")):
+            if not code:
+                continue
+            query = f"""
+                SELECT
+                a.code,
+                b.date as date_time,
+                c.repeat_count as repeat_count,
+                s2.cai_chuang,
+				s2.che_jian,
+				s2.hou_dao,
+				s2.tai_wei,
+				s2.yi_fa,
+				s2.mo_ya,
+                f.price as fabric_price,
+                e.price as materials_price,
+                g.price as factory_price,
+                d.total as salesrecord_price,
+                o.order_total_amount as order_price,
+                s.registration_time as to_salesrecord_time,
+                o.back_rate as back_rate
+                FROM
+                (
+				 SELECT
+				 DISTINCT merchant_code as code
+				 FROM
+				 taiwei_goods
+				 WHERE merchant_code = "{code}"
+				) as a 
+				LEFT JOIN
+                (
+                SELECT
+                    code,
+                    SUM(CASE WHEN house like "裁床%%" THEN inventory ELSE 0 END) AS cai_chuang,
+                    SUM(CASE WHEN house like "%%车间%%" THEN inventory ELSE 0 END) AS che_jian,
+                    SUM(CASE WHEN house like "%%后道%%" THEN inventory ELSE 0 END) AS hou_dao,
+                    SUM(CASE WHEN house like "%%泰维%%" THEN inventory ELSE 0 END) AS tai_wei,
+                    SUM(CASE WHEN house like "%%意法%%" THEN inventory ELSE 0 END) AS yi_fa,
+                    SUM(CASE WHEN house like "%%茉雅%%" THEN inventory ELSE 0 END) AS mo_ya
+                FROM taiwei_stock
+                WHERE code = "{code}"
+                GROUP BY code
+                ) as s2
+                ON a.code = s2.code
+                LEFT JOIN
+                (		
+                SELECT
+                date,
+                code
+                FROM
+                taiwei_new_style
+                WHERE code ="{code}"
+                ) as b 
+                ON a.code = b.code
+                LEFT JOIN
+                (
+                SELECT
+                COUNT(id) as repeat_count,
+                code
+                FROM
+                taiwei_repeat_order
+                WHERE code ="{code}"
+                GROUP BY code
+                ) as c
+                ON a.code = c.code                                                    
+            # 档口总金额
+            LEFT JOIN
+                (
+                SELECT
+                product_code AS code,
+                SUM(total) AS total
+                FROM taiwei_salesrecord
+                WHERE product_code = "{code}"
+                GROUP BY product_code
+                ) as d
+                ON a.code = d.code
+                LEFT JOIN
+                (
+                # 辅助材料总金额
+                SELECT
+                merchant_code as code,
+                SUM(price) AS price
+                FROM taiwei_materials
+                WHERE merchant_code = "{code}"
+                GROUP BY code
+                ) as e
+                ON a.code = e.code
+                LEFT JOIN
+                (
+                # 面料总金额
+                SELECT
+                merchant_code as code,
+                SUM(price) AS price
+                FROM taiwei_fabric
+                WHERE merchant_code = "{code}"
+                GROUP BY code
+                ) as f
+                ON a.code = f.code
+                LEFT JOIN
+                (
+                # 工厂总金额
+                SELECT
+                code,
+                SUM(price) AS price
+                FROM taiwei_factory
+                WHERE code = "{code}"
+                GROUP BY code
+                ) as g
+                ON a.code = g.code
+                LEFT JOIN
+                (
+                # 最近到档口时间
+                SELECT
+                product_code as code,
+                DATE(MAX(registration_time)) as registration_time
+                FROM
+                taiwei_stock_in
+                WHERE product_code = "{code}"
+                GROUP BY product_code
+                ) as s
+                ON a.code = s.code
+                LEFT JOIN
+                (
+                # 订单总金额
+                SELECT 
+                LEFT(merchant_code, LENGTH(merchant_code)-1) AS code,
+                ROUND(
+                    SUM(
+                        CASE 
+                            WHEN order_status = '已完成' 
+                            AND (after_sale_status LIKE '%%售后关闭%%' OR after_sale_status = '-')
+                            THEN order_total_amount 
+                            ELSE 0 
+                        END
+                    ) * 0.95
+                ) AS order_total_amount,
+                SUM(
+                    CASE 
+                        WHEN 
+                                (order_status = '已关闭' AND 
+                                (after_sale_status LIKE '%%退款成功%%' 
+                                AND (merchant_remark LIKE '%%退货%%' 
+                                OR merchant_remark LIKE '%%拒收%%' 
+                                OR merchant_remark LIKE '%%退回%%')))
+                        OR (order_status = '已发货' 
+                                AND (after_sale_status LIKE '%%售后待处理%%' 
+                                OR after_sale_status LIKE '%%待收退货%%' 
+                                OR after_sale_status LIKE '%%待退货%%' 
+                                OR after_sale_status LIKE '%%退款成功%%'))
+                        OR (order_status = '已完成' 
+                                AND (after_sale_status LIKE '%%待收退货%%' 
+                                OR after_sale_status LIKE '%%待退货%%' 
+                                OR after_sale_status LIKE '%%退款成功%%'))
+                        THEN product_quantity 
+                        ELSE 0 
+                    END
+                ) *8.3 AS back_rate
+                FROM 
+                        taiwei_orders
+                WHERE
+                        LEFT(merchant_code, LENGTH(merchant_code)-1) = "{code}"
+                GROUP BY code
+                ) as o
+                ON a.code = o.code
+            """
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                data = cursor.fetchall()
+                if not data:
+                    continue
+                result.append(data)
+        converted_data = [convert_to_dict(item[0]) for item in result]
+        serializer = StyleStatusSerializer(data=converted_data, many=True)
+        if serializer.is_valid():
+            serialized_data = serializer.validated_data
+            return JsonResponse(serialized_data, safe=False)
+        else:
+            return JsonResponse(serializer.errors, safe=False)
+
+
+def convert_to_dict(data_tuple):
+    fields = [
+        'code', 'date_time', 'repeat_count', 'cai_chuang', 'che_jian',
+        'hou_dao', 'tai_wei', 'yi_fa', 'mo_ya', 'fabric_price',
+        'materials_price', 'factory_price', 'salesrecord_price',
+        'order_price', 'to_salesrecord_time', 'back_rate'
+    ]
+    return {fields[i]: item for i, item in enumerate(data_tuple)}

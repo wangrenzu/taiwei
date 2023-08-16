@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'cart',
     'room',
     'Script',
+    'phone',
     'channels',
     'channels_redis',
 ]
@@ -164,7 +165,9 @@ USE_TZ = False
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
 
 STATIC_URL = '/static/'
-
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'clothing\static'),
+]
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
@@ -232,4 +235,3 @@ LOGGING = {
 # Celery 配置
 CELERY_BROKER_URL = 'redis://127.0.0.1:6379'  # 使用 Redis 作为消息代理
 CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379'  # 将 Celery 结果存储在数据库中
-

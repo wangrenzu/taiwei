@@ -3,10 +3,11 @@ import http from "../utils/http.js";
 
 
 export const design = reactive({
-    getDesign(cart_name) {
+    getDesign(cart_name, cart_codes) {
         return http.get("script/", {
             params: {
-                cart_name: cart_name
+                cart_name: cart_name,
+                cart_codes: cart_codes
             }
         })
     },
@@ -24,10 +25,10 @@ export const design = reactive({
             }
         })
     },
-    addTags(name,design_id) {
+    addTags(name, design_id) {
         return http.post("script/tags/", {
             name: name,
-            design_id:design_id
+            design_id: design_id
         })
     },
     getSize(tags_id) {
@@ -92,17 +93,24 @@ export const design = reactive({
             }
         })
     },
-    updateCollocation(id, codes,notes) {
+    updateCollocation(id, notes) {
         return http.patch("script/collocation/", {
             id: id,
-            codes:codes,
-            notes:notes,
+            notes: notes,
         })
     },
-    addCollocation(tags_id,design_code) {
+    addCollocation(tags_id, design_code) {
         return http.post("script/collocation/", {
             tags_id: tags_id,
             design_code: design_code,
+        })
+    },
+    delCollocation(id, file_name) {
+        return http.delete('script/collocation/', {
+            params: {
+                id: id,
+                file_name: file_name
+            }
         })
     },
     reply(content) {
@@ -119,10 +127,89 @@ export const design = reactive({
             }
         })
     },
-    designDetail(code) {
-        return http.get("script/designDetail/", {
+    processGETRequest(text) {
+        return http.get("script/processGETRequest/", {
+            params: {
+                text: text,
+            }
+        })
+    },
+    getDesign2(code) {
+        return http.get("script/design2/", {
             params: {
                 code: code
+            }
+        })
+    },
+    moveImg(data_list, name) {
+        return http.get(`/home/movetodapei/`, {
+            params: {
+                data_list: JSON.stringify(data_list),
+                name: name
+            }
+        })
+    },
+    getDesign4(type, name) {
+        return http.get("script/design4/", {
+            params: {
+                type: type,
+                name: name
+            }
+        })
+    },
+    delImg(name, type, user_name) {
+        return http.get("script/delimg/", {
+            params: {
+                name: name,
+                type: type,
+                user_name: user_name,
+            }
+        })
+    },
+    exportCode(name, type) {
+        return http.get("script/exportcode/", {
+            params: {
+                name: name
+            }
+        })
+    },
+    updateNotes(id, notes) {
+        return http.get("script/updatenotes/", {
+            params: {
+                id: id,
+                notes: notes,
+            }
+
+        })
+    },
+    getDesigner() {
+        return http.get("script/getdesigner/")
+    },
+    getDesignerCode(designer, time_count) {
+        return http.get("script/Designer/", {
+            params: {
+                designer: designer,
+                time_count: time_count
+            }
+        })
+    },
+    postDesignerCode(designer, time_count) {
+        return http.post("script/Designer/", {
+            designer: designer,
+            time_count: time_count
+        })
+    },
+    getCodeInfo(code) {
+        return http.get("script/getcodeinfo/",{
+            params: {
+                code: code
+            }
+        })
+    },
+    getSearchCode(code) {
+        return http.get("script/getsearchcode/", {
+            params: {
+                code: code,
             }
         })
     },

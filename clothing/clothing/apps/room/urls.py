@@ -22,5 +22,11 @@ urlpatterns = [
     path('Integration/', views.IntegrationView.as_view()),
     path('Barrage/', views.Barrage.as_view()),
     path('productInfo/', views.ProductInfoView.as_view()),
-    path("LiveRoomData/", views.LiveRoomDataView.as_view())
+    path("LiveRoomData/", views.LiveRoomDataView.as_view()),
+    path("echarts1/", views.echarts1),
+    path("echarts2/", views.echarts2),
+    path("echarts3/", views.echarts3),
+    path("echarts4/", views.echarts4),
+    path("updatecode/", views.update_code),
+    path("getcode/", views.get_code),
 ]

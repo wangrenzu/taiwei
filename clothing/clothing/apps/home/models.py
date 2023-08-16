@@ -326,8 +326,8 @@ class Factory(models.Model):
 
 
 class StyleStatus(models.Model):
-    time = models.DateField(verbose_name="简报日期", null=True)
-    date_time = models.DateField(verbose_name="上传日期", null=True)
+    date_time = models.DateField(verbose_name="新款下单日期", null=True)
+    repeat_count = models.IntegerField(verbose_name="翻单次数", null=True)
     code = models.CharField(verbose_name="款号", max_length=30, null=True)
     cai_chuang = models.IntegerField(verbose_name="裁床", null=True)
     che_jian = models.IntegerField(verbose_name="车间", null=True)
@@ -339,13 +339,10 @@ class StyleStatus(models.Model):
     materials_price = models.FloatField(verbose_name="辅料金额", null=True)
     factory_price = models.FloatField(verbose_name="工厂金额", null=True)
     salesrecord_price = models.FloatField(verbose_name="档口金额", null=True)
-    order_price = models.FloatField(verbose_name="订单金额", null=True)
+    order_price = models.IntegerField(verbose_name="订单金额", null=True)
     to_salesrecord_time = models.DateField(verbose_name="最近到档口时间", null=True)
-    time_num = models.IntegerField(verbose_name="下单到今天天数", null=True)
-    tags = models.CharField(verbose_name="标签", max_length=255, null=True)
-    remarks = models.TextField(verbose_name="备注", null=True)
-    is_other = models.BooleanField(verbose_name="是否是其他", default=False)
-    num = models.IntegerField(verbose_name="来几次", null=True)
+    back_rate = models.FloatField(verbose_name="退货损耗", null=True)
+
 
     class Meta:
         verbose_name = '新款状态'
@@ -369,6 +366,7 @@ class NewStyleStatusTracking(models.Model):
     notes = models.CharField(verbose_name="备注", null=True, max_length=255)
     count = models.IntegerField(verbose_name="计数", default=1)
     auto_time = models.DateField(verbose_name="自动生成的日期", auto_now=True)
+    notes_info = models.CharField(max_length=255, verbose_name="备注", null=True)
 
     class Meta:
         verbose_name = '新款状态跟踪'

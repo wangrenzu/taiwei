@@ -11,9 +11,19 @@ export const tags = reactive({
     getCategory(season) {
         return http.get(`/home/getCategory/${season}`)
     },
-    getGoodsInfo(tag_list) {
+    getGoodsInfo(tag_list,search_code) {
         return http.post('home/getgoodsinfo/', {
             tag_list: tag_list,
+            search_code: search_code,
         })
-    }
+    },
+    moveImg(data_list,name) {
+        return http.get(`/home/movetodanping/`, {
+            params: {
+                data_list: JSON.stringify(data_list),
+                name:name
+            }
+        })
+    },
+
 })
